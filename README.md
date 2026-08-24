@@ -58,10 +58,9 @@ So we built the pipeline once, and opened everything.
   Always verify against current IRCC instructions.
 
 ## Roadmap
-- Remaining ATIP packages ingesting (2016–2025 full mailbox coverage, ~5,000+ threads expected)
-- Category/tag enrichment
-- Search inside [VisaFlo](https://vflo.app): ask the assistant "what did IRCC say about X"
-  and get sourced answers against your own cases
+See [ROADMAP.md](ROADMAP.md) — GCMS codes reference, response-template corpus, police
+certificate country matrix, program checklists, and search inside
+[VisaFlo](https://vflo.app) are all on deck.
 
 ## About
 
