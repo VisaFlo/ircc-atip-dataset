@@ -315,27 +315,13 @@ def _make_thread(block: str, first_is_answer: bool = False) -> dict:
     }
 
 
-def split_threads(text: str) -> list[dict]:
-    """Split raw OCR markdown into thread dicts (one per Archived: email export)."""
-    if not text or not text.strip():
-        return []
+def _split_oldformat_region(text: str) -> list[dict]:
+    """Split a region of old-format exports at header clusters. Text before
+    the first cluster (or a cluster-less region) is kept only with a Subject:
+    header — otherwise it is a torn continuation tail."""
     threads: list[dict] = []
-    if _ARCHIVED_RE.search(text):
-        parts = _ARCHIVED_RE.split(text)
-        # Text before the first Archived: marker is a continuation tail from a
-        # previous chunk — keep it only if it carries a Subject: header.
-        head = parts[0]
-        if head.strip() and "Subject:" in head:
-            threads.append(_make_thread(head))
-        for block in parts[1:]:
-            if block.strip():
-                threads.append(_make_thread(block))
-        return threads
-    # Old-format fallback: no Archived: markers; split at export header
-    # clusters. Each export leads with the IRCC reply.
     bounds = _oldformat_boundaries(text)
     if not bounds:
-        # No boundaries at all: a lone torn block is kept only with a Subject:.
         if "Subject:" in text:
             threads.append(_make_thread(text))
         return threads
@@ -346,4 +332,28 @@ def split_threads(text: str) -> list[dict]:
         block = text[start:end]
         if block.strip():
             threads.append(_make_thread(block, first_is_answer=True))
+    return threads
+
+
+def split_threads(text: str) -> list[dict]:
+    """Split raw OCR markdown into thread dicts, region-aware: Archived: email
+    exports split first; regions between/before them that carry old-format
+    header clusters are split by the old-format rules."""
+    if not text or not text.strip():
+        return []
+    if not _ARCHIVED_RE.search(text):
+        return _split_oldformat_region(text)
+    parts = _ARCHIVED_RE.split(text)
+    threads: list[dict] = []
+    if parts[0].strip():
+        # The pre-Archived head may itself be a whole old-format region
+        # (mixed merged file) or just a torn continuation tail.
+        threads.extend(_split_oldformat_region(parts[0]))
+    for block in parts[1:]:
+        if block.strip():
+            # One Archived: export = one thread. Never re-split these by
+            # old-format rules: long archived threads legitimately contain
+            # several quoted IRCC reply headers (observed 6-deep chains) that
+            # are indistinguishable from export header clusters.
+            threads.append(_make_thread(block))
     return threads

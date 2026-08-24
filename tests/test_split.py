@@ -254,3 +254,39 @@ class TestRfcHeaderScrub:
         )
         assert "Mail received time" not in body
         assert "Thank you for your enquiry." in body
+
+
+class TestMixedFormatFiles:
+    """Full-file merges can mix formats: A-2021-10864_part_3.md is ~780p of
+    old-format exports with a few new-format Archived exports appended at the
+    end. Mode selection must be region-aware, not text-global."""
+
+    def test_mixed_tail_splits_both_regions(self):
+        # Real slice of the merged file: 3 old-format export clusters followed
+        # by 4 Archived exports. Text-global mode selection collapsed the
+        # old-format region into a single thread (5 total).
+        threads = split_threads(load("mixed_tail.md"))
+        assert len(threads) == 7, f"got {len(threads)}"
+        for t in threads:
+            assert t["subject"], f"empty subject, raw head: {t['raw'][:100]!r}"
+
+    def test_mixed_tail_old_region_threads_are_qa_units(self):
+        threads = split_threads(load("mixed_tail.md"))
+        # The 3 old-format threads come first (file order), then the archived.
+        old, archived = threads[:3], threads[3:]
+        assert sum(1 for t in old if t["answer"]) >= 2
+        assert all("Archived:" in t["raw"] for t in archived)
+        assert not any("Archived:" in t["raw"] for t in old)
+
+    def test_full_merged_file_count_matches_chunk_sweep(self):
+        full = Path(
+            "/private/tmp/claude-501/-Users-Yulbin-Documents-Dev-2minEasy/"
+            "bed0fa35-b2f4-4146-a923-ed06fb17096c/scratchpad/ati/received_ocr/"
+            "A-2021-10864_part_3.md"
+        )
+        if not full.exists():
+            pytest.skip("merged source file not on this machine")
+        n = len(split_threads(full.read_text()))
+        # Chunk-level sweep of the same release yielded 295 threads; the
+        # full-file merge must land within +-15% of that.
+        assert 251 <= n <= 339, f"full-file count {n} outside 251..339"
