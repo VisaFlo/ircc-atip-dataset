@@ -15,6 +15,8 @@ This repo makes them free and open:
   Python, 90+ tests. Clone and run it on your own ATIP packages.
 - [`sources.md`](sources.md) — every source ATIP request number, and how anyone can obtain
   the same records free to verify this dataset.
+- **Raw source PDFs** — attached under [Releases](https://github.com/VisaFlo/immreps-mailbox-dataset/releases), exactly as
+  IRCC released them (IRCC's own redactions), so every parsed thread can be checked against its source.
 
 ## Quick look
 
