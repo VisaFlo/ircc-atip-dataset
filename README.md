@@ -1,8 +1,48 @@
 # Open IRCC Dataset
 
-**Public records about Canadian immigration, made actually usable.
-Structured Q&A from IRCC's Immigration Representatives Mailbox, internal officer manuals,
-and the raw ATIP releases behind them. Free, open, verifiable, growing daily.**
+> 1,285 IRCC answers to licensed immigration representatives, 19 internal officer
+> manuals, and every ATIP release behind them. Parsed, structured, free.
+
+![threads](https://img.shields.io/badge/threads-1,285-blue)
+![manuals](https://img.shields.io/badge/manuals-19-blue)
+![coverage](https://img.shields.io/badge/coverage-2016--2025-blue)
+![data](https://img.shields.io/badge/data-OGL--Canada-green)
+![code](https://img.shields.io/badge/code-MIT-green)
+
+**For immigration consultants, lawyers and RCICs** who need to know what IRCC has actually
+said about a procedure, and **for developers and researchers** who want it as clean JSON.
+
+Every thread traces to an ATIP package you can request yourself, free. See [`sources.md`](sources.md).
+
+## Get the data
+
+| File | Contents | Threads |
+|---|---|---|
+| [`data/2017.json`](data/2017.json) | Mailbox threads, 2017 | 220 |
+| [`data/2018.json`](data/2018.json) | Mailbox threads, 2018 | 20 |
+| [`data/2023.json`](data/2023.json) | Mailbox threads, 2023 | 1 |
+| [`data/2024.json`](data/2024.json) | Mailbox threads, 2024 | 360 |
+| [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 641 |
+| [`data/undated.json`](data/undated.json) | Threads with no parseable date | 43 |
+| [`data/index.json`](data/index.json) | Counts by year, quality, ATIP release | — |
+| [`manuals/`](manuals/) | OCR text of 19 internal IRCC documents | — |
+| [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
+
+No clone, no dependencies:
+
+```python
+import json, urllib.request
+
+BASE = "https://raw.githubusercontent.com/VisaFlo/open-ircc-dataset/main/data"
+index = json.load(urllib.request.urlopen(f"{BASE}/index.json"))
+
+threads = []
+for year in index["by_year"]:
+    threads += json.load(urllib.request.urlopen(f"{BASE}/{year}.json"))["threads"]
+
+hits = [t for t in threads if "biometric" in (t.get("answer") or "").lower()]
+print(len(threads), "threads,", len(hits), "mentioning biometrics")
+```
 
 ## Why this exists
 
@@ -19,24 +59,7 @@ It should not take a FOIA workflow and OCR pipeline to read it.
 
 So we built the pipeline once, and opened everything.
 
-## What's inside
-
-- **`data/`** — IRCC's answers to representatives (Immigration Representatives Mailbox),
-  parsed into thread-level JSON: subject, the rep's question, IRCC's answer, date, quality
-  flag, source ATIP package. 924 threads live, thousands more landing as packages arrive.
-  See [`schema.md`](schema.md).
-- **`manuals/`** — OCR text of 18 internal IRCC documents: the Chinook processing manuals
-  (including the refusal-notes generator module), R10 completeness manuals, ENF 2
-  inadmissibility assessment, the Express Entry officer answer guide, anti-fraud manual,
-  Country Information Library, and more. Each file carries its provenance.
-- **Releases** — the raw ATIP release PDFs exactly as IRCC delivered them (IRCC's own
-  s.19(1) redactions), so every parsed line can be checked against its source.
-- **`pipeline/`** — the full parsing pipeline (OCR text → threads → dedup → JSON),
-  stdlib-only Python, 90+ tests. Clone and run it on your own ATIP packages.
-- **[`sources.md`](sources.md)** — every ATIP request number, and how anyone can obtain
-  the same records free to verify this dataset.
-
-## Quick look
+## A record
 
 ```json
 {
@@ -50,23 +73,68 @@ So we built the pipeline once, and opened everything.
 }
 ```
 
-## Honest limitations
+**Fields** — `id` · `atip_release` · `date` · `subject` · `question` · `answer` · `quality`.
+Full types and semantics in [`schema.md`](schema.md).
+
+`quality` is the field to read first: `answered` (950) substantive reply ·
+`deflected` (130) boilerplate refusal or redirect · `partial` (205) OCR-torn or empty.
+
+Deflected threads are kept, not hidden. What IRCC declines to answer is signal too.
+
+## What else is inside
+
+- **`manuals/`** — OCR text of 19 internal IRCC documents: the Chinook processing manuals
+  (including the refusal-notes generator), R10 completeness manuals, ENF 2 inadmissibility
+  assessment, the Express Entry officer answer guide, anti-fraud manual, Country Information
+  Library. Each file carries its provenance.
+- **`pipeline/`** — the parsing pipeline (OCR text → threads → dedup → JSON), stdlib-only
+  Python, 90+ tests. Clone and run it on your own ATIP packages.
+- **[`sources.md`](sources.md)** — every ATIP request number, and the steps to obtain the
+  same records free.
+
+## Limitations
+
 - Source documents are scanned PDFs; text is local-OCR output and carries OCR noise.
 - `question`/`answer` extraction is best-effort; `quality: partial` marks OCR-torn threads
   rather than hiding them.
 - IRCC's replies are procedural guidance at the time of writing, not legal advice.
   Always verify against current IRCC instructions.
 
+Found a mis-parsed thread, a wrong date, or personal information that should have been
+redacted? [Open an issue](../../issues/new) with the thread `id`. We fix data bugs the
+same way we fix code bugs.
+
+## How to help
+
+- **Know a completed IRCC ATIP request that belongs here?** Open an issue with the request
+  number. We re-request it and add it.
+- Spot a parsing error, improve the pipeline, or add a category taxonomy: PRs welcome.
+
 ## Roadmap
-See [ROADMAP.md](ROADMAP.md) — GCMS codes reference, response-template corpus, police
-certificate country matrix, program checklists, and search inside
-[VisaFlo](https://vflo.app) are all on deck.
+
+See [ROADMAP.md](ROADMAP.md) — GCMS codes reference, response-template corpus, Functional
+Guidance repository, and more packages currently ingesting.
+
+## Citation
+
+```bibtex
+@misc{openircc2026,
+  title  = {Open IRCC Dataset: Structured Records from the IRCC Immigration Representatives Mailbox},
+  author = {{VisaFlo}},
+  year   = {2026},
+  url    = {https://github.com/VisaFlo/open-ircc-dataset},
+  note   = {Records released under the Access to Information Act (Canada)}
+}
+```
 
 ## About
 
 We're [VisaFlo](https://vflo.app). We build case management for Canadian immigration
 practices, working toward a simple idea: **a better migrating world**, where every case
 knows what comes next and safely gets there.
+
+We also make this searchable inside our product. The data here is the same data, and
+always will be.
 
 This dataset is our contribution to the people doing that work. The records were always
 public. Now they're usable.

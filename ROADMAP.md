@@ -26,11 +26,6 @@ ship as they're ready, not on a schedule.
 - **Program document checklists** — structured document requirements per immigration
   program, from official IRCC sources.
 
-## Product
-- **Search inside [VisaFlo](https://vflo.app)** — the practitioner's assistant answers
-  "what did IRCC say about X" with sourced threads from this dataset, in the context of
-  your own cases.
-
 ## Standing
 - **New ATIP releases monitoring** — as IRCC completes new relevant Access to Information
   requests, we re-request and ingest them. If you know a completed IRCC ATIP request that
