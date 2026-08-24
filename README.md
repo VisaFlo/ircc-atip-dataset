@@ -73,4 +73,4 @@ public. Now they're usable.
 
 Data: released under the Access to Information Act; contains information licensed under the
 Open Government Licence – Canada. Code: MIT.
-Removal requests / questions: open an issue or support@vflo.app.
+Removal requests / questions: open an issue or info@vflo.app.
