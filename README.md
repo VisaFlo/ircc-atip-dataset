@@ -1,12 +1,12 @@
 # Open IRCC Dataset
 
 <!-- STATS:HERO -->
-> 1,285 IRCC answers to licensed immigration representatives, 18 internal officer
+> 2,760 IRCC answers to licensed immigration representatives, 18 internal officer
 > manuals, and every ATIP release behind them. Parsed, structured, free.
 <!-- /STATS:HERO -->
 
 <!-- STATS:BADGES -->
-![threads](https://img.shields.io/badge/threads-1,285-blue)
+![threads](https://img.shields.io/badge/threads-2,760-blue)
 ![manuals](https://img.shields.io/badge/manuals-18-blue)
 ![coverage](https://img.shields.io/badge/coverage-2017--2025-blue)
 ![data](https://img.shields.io/badge/data-OGL--Canada-green)
@@ -26,10 +26,11 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 |---|---|---|
 | [`data/2017.json`](data/2017.json) | Mailbox threads, 2017 | 220 |
 | [`data/2018.json`](data/2018.json) | Mailbox threads, 2018 | 20 |
+| [`data/2019.json`](data/2019.json) | Mailbox threads, 2019 | 1 |
 | [`data/2023.json`](data/2023.json) | Mailbox threads, 2023 | 1 |
-| [`data/2024.json`](data/2024.json) | Mailbox threads, 2024 | 360 |
-| [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 641 |
-| [`data/undated.json`](data/undated.json) | Threads with no parseable date | 43 |
+| [`data/2024.json`](data/2024.json) | Mailbox threads, 2024 | 1,251 |
+| [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 1,125 |
+| [`data/undated.json`](data/undated.json) | Threads with no parseable date | 142 |
 | [`data/index.json`](data/index.json) | Counts by year, quality, ATIP release | — |
 | [`manuals/`](manuals/) | OCR text of 18 internal IRCC documents | — |
 | [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
@@ -84,8 +85,8 @@ So we built the pipeline once, and opened everything.
 Full types and semantics in [`schema.md`](schema.md).
 
 <!-- STATS:QUALITY -->
-`quality` is the field to read first: `answered` (950) substantive reply ·
-`deflected` (130) boilerplate refusal or redirect · `partial` (205) OCR-torn or empty.
+`quality` is the field to read first: `answered` (2,289) substantive reply ·
+`deflected` (135) boilerplate refusal or redirect · `partial` (336) OCR-torn or empty.
 <!-- /STATS:QUALITY -->
 
 Deflected threads are kept, not hidden. What IRCC declines to answer is signal too.
