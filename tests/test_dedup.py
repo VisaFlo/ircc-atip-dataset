@@ -154,3 +154,51 @@ class TestRealData:
             print(f"\n[real-data smoke] input={len(threads)} output={len(out)} "
                   f"merged_away={merged} multi_release_threads={cross}")
         assert len(out) <= len(threads)
+
+
+class TestTrackingStamps:
+    """Registrar tracking stamps ("- REP-B-2025-1767 - Due 21-Oct-25") are
+    appended to subjects in some releases. They must be stripped for the
+    similarity comparison — but a DIFFERENT REP id on each side is positive
+    evidence of distinct threads and must block the merge."""
+
+    def test_stamp_suffix_pair_merges(self):
+        a = make_thread("2 Questions about IRCC Forms", "2025-10-14", "raw short",
+                        "A-2025-81965")
+        b = make_thread("2 Questions about IRCC Forms - REP-B-2025-1767 - Due 21-Oct-25",
+                        "2025-10-15", "raw longer with the full OCR body", "A-2025-85182")
+        out = dedup([a, b])
+        assert len(out) == 1
+        assert out[0]["atip_release"] == ["A-2025-81965", "A-2025-85182"]
+        assert out[0]["raw"] == b["raw"]
+
+    def test_different_rep_ids_do_not_merge(self):
+        # After stamp stripping these subjects become IDENTICAL; the differing
+        # REP ids are what keep them apart.
+        a = make_thread("2 Questions about IRCC Forms - REP-2017-0601",
+                        "2017-06-01", "raw a", "A-2021-10864")
+        b = make_thread("2 Questions about IRCC Forms - REP-2017-0463",
+                        "2017-06-02", "raw b", "1A-2022-39382")
+        out = dedup([a, b])
+        assert len(out) == 2
+
+    def test_same_rep_id_merges(self):
+        a = make_thread("2 Questions about IRCC Forms - REP-2017-0601",
+                        "2017-06-01", "raw a", "A-2021-10864")
+        b = make_thread("2 Questions about IRCC Forms - REP-2017-0601 - Due 15-Jun-17",
+                        "2017-06-02", "raw b is longer than raw a", "1A-2022-39382")
+        out = dedup([a, b])
+        assert len(out) == 1
+        assert out[0]["raw"] == b["raw"]
+
+    def test_unstamped_thread_cannot_bridge_two_rep_ids(self):
+        # A stamp-less copy may merge into ONE of the id-bearing threads, but
+        # must not transitively fuse two threads with different REP ids.
+        a = make_thread("2 Questions about IRCC Forms - REP-2017-0601",
+                        "2017-06-01", "raw a", "A-2021-10864")
+        b = make_thread("2 Questions about IRCC Forms",
+                        "2017-06-02", "raw b no stamp", "1A-2022-39382")
+        c = make_thread("2 Questions about IRCC Forms - REP-2017-0463",
+                        "2017-06-03", "raw c", "2A-2021-90643")
+        out = dedup([a, b, c])
+        assert len(out) == 2
