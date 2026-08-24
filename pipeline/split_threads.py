@@ -20,7 +20,7 @@ _ARCHIVED_RE = re.compile(r"(?=Archived:)")
 # everything _OLD_FROM_RE accepts, or an old-format boundary would start a
 # block whose first email is not recognized as a segment (silently swapping
 # question and answer).
-_FROM_RE = re.compile(r"(?=\bFrom\s*:)|(?=\bFrom,?\s+Sent:)")
+_FROM_RE = re.compile(r"(?=\bFrom[ \t]*:)|(?=\bFrom,?\s+Sent:)")
 
 # IRCC sender signature (accent/OCR-tolerant; old releases print the name
 # without a space, "ImmigrationRepresentatives").
@@ -36,7 +36,7 @@ _IRCC_SENDER_RE = re.compile(
 # Subject cluster with IRCC as the sender. OCR scrambles it (heading marks,
 # From/Sent values swapped), but the cluster shape survives. Quoted question
 # headers inside a thread lack Cc: or have an empty sender zone.
-_OLD_FROM_RE = re.compile(r"(?:#+\s*)?\bFrom\s*:")
+_OLD_FROM_RE = re.compile(r"(?:#+[ \t]*)?\bFrom[ \t]*:")
 _TIME_OR_YEAR_RE = re.compile(r"\d{1,2}:\d{2}|\b\d{4}\b")
 
 # Window sizes for old-format header-cluster detection, from observed OCR
@@ -44,10 +44,13 @@ _TIME_OR_YEAR_RE = re.compile(r"\d{1,2}:\d{2}|\b\d{4}\b")
 _SENT_WINDOW = 300  # Sent: must appear this close after From: in a real header
 _HEADER_CLUSTER_SPAN = 450  # max observed OCR scatter of one header table
 
-# Date-parsing windows around the first Sent: token:
-_DATE_FWD_WINDOW = 120  # normal order: "Sent: Friday, November 21, 2025 ..."
-_DATE_BACK_WINDOW = 60  # OCR-swapped order; short enough not to reach an
-# Archived: timestamp in new-format headers (>= ~82 chars away in real data)
+# Date-parsing windows around the first Sent: token.
+# Forward covers the normal order ("Sent: Friday, November 21, 2025 ...");
+# backward covers the OCR-swapped order, and is kept short enough never to
+# reach an Archived: timestamp in new-format headers (>= ~82 chars away in
+# real data).
+_DATE_FWD_WINDOW = 120
+_DATE_BACK_WINDOW = 60
 
 _MONTHS = {
     m: i + 1
@@ -56,11 +59,25 @@ _MONTHS = {
         "september october november december".split()
     )
 }
+_MONTHS_ABBR = {m[:3]: n for m, n in _MONTHS.items()}
 _DATE_RE = re.compile(
     r"(January|February|March|April|May|June|July|August|September|October"
     r"|November|December)\s+(\d{1,2}),?\s+(\d{4})",
     re.IGNORECASE,
 )
+
+# RFC-style day-first form used by A-2025-13309 headers:
+# "Sent: Tue, 1 Oct 2024 14:43:10" (abbreviated month, 24h time, no AM/PM).
+_DATE_RFC_RE = re.compile(
+    r"\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?,?\s+(\d{4})",
+    re.IGNORECASE,
+)
+
+# Inline exchange labels inside a single IRCC reply (A-2025-13309 style):
+# "Question 1", "Question:", "Answer:", "Response 1", "Question A)"; a bare
+# capitalized word only counts when it is numbered, separated, or alone on a
+# heading line (checked in _extract_inline_qa) so prose is never split.
+_QA_LABEL_RE = re.compile(r"\b(Question|Answer|Response)\b[ \t]*(\d{1,2}|[A-D])?[ \t]*([:)])?")
 
 # Leading [ \t]* (not \s*) so an empty header-table Subject: cell yields an
 # empty value instead of swallowing the next body line.
@@ -163,15 +180,21 @@ def _extract_date(block: str) -> str | None:
     if idx == -1:
         return None
     m = _DATE_RE.search(block, idx, idx + _DATE_FWD_WINDOW)
-    if not m:
-        # Old-format OCR often swaps From/Sent values, leaving the date just
-        # BEFORE the Sent: token. (60 chars is too short to reach back to the
-        # Archived: timestamp in new-format headers.)
-        m = _DATE_RE.search(block, max(0, idx - _DATE_BACK_WINDOW), idx)
-    if not m:
-        return None
-    month = _MONTHS[m.group(1).lower()]
-    return f"{int(m.group(3)):04d}-{month:02d}-{int(m.group(2)):02d}"
+    if m:
+        month, day = _MONTHS[m.group(1).lower()], m.group(2)
+    else:
+        rfc = _DATE_RFC_RE.search(block, idx, idx + _DATE_FWD_WINDOW)
+        if rfc:  # day-first RFC style: "Sent: Tue, 1 Oct 2024 14:43:10"
+            m, day = rfc, rfc.group(1)
+            month = _MONTHS_ABBR[rfc.group(2).lower()]
+        else:
+            # Old-format OCR often swaps From/Sent values, leaving the date
+            # just BEFORE the Sent: token.
+            m = _DATE_RE.search(block, max(0, idx - _DATE_BACK_WINDOW), idx)
+            if not m:
+                return None
+            month, day = _MONTHS[m.group(1).lower()], m.group(2)
+    return f"{int(m.group(3)):04d}-{month:02d}-{int(day):02d}"
 
 
 def _clean_body(text: str) -> str:
@@ -218,7 +241,41 @@ def _extract_qa(block: str, first_is_answer: bool = False) -> tuple[str | None, 
         elif question is None:
             question = body
     answer = "\n\n".join(answers) if answers else None
+    if question is None and len(answers) == 1 and answer:
+        # A-2025-13309 style: the quoted question email has no From: header;
+        # IRCC's single reply inlines the exchange as labeled segments.
+        inline = _extract_inline_qa(answer)
+        if inline:
+            return inline
     return question, answer
+
+
+def _extract_inline_qa(body: str) -> tuple[str, str] | None:
+    """Split an answer body carrying inline "Question .. Answer/Response .."
+    labels into (question, answer). None unless BOTH sides come out non-empty
+    (best-effort contract: never degrade an unlabeled body)."""
+    marks = []
+    for m in _QA_LABEL_RE.finditer(body):
+        numbered, sep = m.group(2), m.group(3)
+        line_start = body.rfind("\n", 0, m.start()) + 1
+        line_end = body.find("\n", m.end())
+        whole_line = (
+            body[line_start:m.start()].strip("# ") == ""
+            and body[m.end(): None if line_end == -1 else line_end].strip() == ""
+        )
+        # Keep real labels only: numbered ("Question 1"), separated
+        # ("Answer:", "Question A)"), or a bare heading line ("### Question").
+        if numbered or sep or whole_line:
+            marks.append((m.start(), m.end(), m.group(1).lower()))
+    questions, answers = [], []
+    for (start, end, kind), nxt in zip(marks, marks[1:] + [(len(body), None, None)]):
+        seg = body[end: nxt[0]].strip()
+        if not seg:
+            continue
+        (questions if kind == "question" else answers).append(seg)
+    if questions and answers:
+        return "\n\n".join(questions), "\n\n".join(answers)
+    return None
 
 
 def _oldformat_boundaries(text: str) -> list[int]:

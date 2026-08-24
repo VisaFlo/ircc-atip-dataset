@@ -192,3 +192,43 @@ class TestDegenerateInput:
         # the no-boundary fallback path, which keeps a lone block only if it
         # carries a Subject: line.
         assert split_threads("some continuation body text\nwith no headers at all\n") == []
+
+
+class TestInlineQAFallback:
+    """A-2025-13309: quoted question emails often lack a From: header — the
+    IRCC reply inlines the exchange as Question/Answer(/Response) segments."""
+
+    def test_rfc_style_sent_dates_parse(self):
+        threads = split_threads(load("inline_qa_chunk.md"))
+        # First thread's header: "Sent: Tue, 1 Oct 2024 14:43:10" (day-first,
+        # abbreviated month, no AM/PM).
+        assert threads[0]["date"] == "2024-10-01"
+        dated = [t for t in threads if t["date"]]
+        assert len(dated) >= (len(threads) * 3) // 4
+
+    def test_inline_labels_yield_question_and_answer(self):
+        threads = split_threads(load("inline_qa_chunk.md"))
+        bowp = [t for t in threads if t["subject"].startswith("Bridging open work permit")]
+        assert bowp, "BOWP thread not found"
+        t = bowp[0]
+        assert t["question"] and "BOWP without AOR" in t["question"]
+        assert t["answer"] and "general eligibility requirements" in t["answer"]
+        # The labels themselves are stripped from the extracted bodies.
+        assert "Question 1" not in t["question"]
+        assert "Response 1" not in t["answer"]
+
+    def test_no_labels_means_no_false_extraction(self):
+        threads = split_threads(load("inline_qa_chunk.md"))
+        t = [
+            t for t in threads
+            if t["subject"].startswith("Super Visa Application Instructions")
+        ][0]
+        # Single-From thread without inline markers: best-effort contract
+        # unchanged — question stays None, answer keeps the full body.
+        assert t["question"] is None
+        assert t["answer"]
+
+    def test_threads_with_quoted_question_email_are_untouched(self):
+        threads = split_threads(load("inline_qa_chunk.md"))
+        t = threads[0]  # DLI off-campus thread: has a real quoted From: email
+        assert t["question"] and "off-campus" in t["question"].lower()
