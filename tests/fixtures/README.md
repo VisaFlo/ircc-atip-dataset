@@ -1,0 +1,7 @@
+# Test fixtures
+
+Raw OCR chunks from the ATIP release packages, copied verbatim (noisy OCR text is intentional).
+
+- `normal_thread.md` — from chunk `A-2025-85182_00000.md`. Contains a complete real Q&A: an external question ("Subject: Question regarding LOA verification for US citizens applying at POE") and a substantive IRCC answer ("Foreign nationals eligible to apply for a study permit at a port of entry (POE), such as U.S. nationals, are strongly encouraged to submit their application outside of Canada. Should a foreign national present themselves at a POE to apply, a border services officer will review the application and conduct any necessary verifications to confirm the authenticity of the Letter of Acceptance (LOA).").
+- `deflected_thread.md` — from chunk `A-2025-85182_00040.md`. Contains the standard deflection boilerplate: "Please note that we do not answer case specific inquiries. For updates on applications outside of normal processing times, ... please fill out the IRCC Web form-Canada.ca_..." (line 875 and others).
+- `boundary_chunk.md` — from chunk `A-2025-85182_00040.md` (same source as deflected_thread; duplication is deliberate so tests stay independent). Contains 19 `Archived:` thread-start header blocks (e.g. "Archived: Wednesday, January 14, 2026 8:26:39 AM From: Immigration Representatives / Représentants immigration (IRCC) ..."), so a splitter test can assert >= 2 threads.
