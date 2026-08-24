@@ -86,6 +86,72 @@ class TestSubjectNormalization:
         assert normalize_subject("  Study   Permit\t question ") == "Study Permit question"
 
 
+class TestOldFormatFallback:
+    """Releases without Archived: markers (e.g. A-2021-10864) use Outlook
+    header-table exports: From/Sent/To/Cc/Subject cluster with IRCC as sender."""
+
+    def test_oldformat_chunk_splits_into_many_threads(self):
+        # Manual inspection of the fixture found 16 export headers (~40 pages).
+        threads = split_threads(load("oldformat_chunk.md"))
+        assert len(threads) >= 12, f"got {len(threads)} threads, expected ~16"
+        assert len(threads) <= 25, f"over-split: {len(threads)} threads"
+
+    def test_oldformat_threads_have_subjects(self):
+        threads = split_threads(load("oldformat_chunk.md"))
+        for t in threads:
+            assert t["subject"], f"empty subject, raw head: {t['raw'][:120]!r}"
+        # This thread's header-table Subject: cell is empty (value displaced by
+        # OCR); the subject must come from the first NON-empty Subject: line.
+        assert "Study Permit Requirement?" in {t["subject"] for t in threads}
+
+    def test_oldformat_has_qa_pairs(self):
+        threads = split_threads(load("oldformat_chunk.md"))
+        qa = [t for t in threads if t["question"] and t["answer"]]
+        assert len(qa) >= len(threads) // 2
+
+    def test_oldformat_answer_is_the_ircc_top_email(self):
+        threads = split_threads(load("oldformat_chunk.md"))
+        # The DLI-portal thread: IRCC's answer mentions updating the DLI Portal;
+        # the question below it asks about study permit notations.
+        hits = [
+            t for t in threads
+            if t["answer"] and "update the DLI Portal" in t["answer"]
+        ]
+        assert hits, "expected the DLI Portal answer in an answer body"
+        assert hits[0]["question"] and "notation" in hits[0]["question"].lower()
+
+    def test_oldformat_some_dates_parse_despite_ocr(self):
+        # From/Sent values are often swapped by OCR; the date should still parse
+        # for headers with clean month names (e.g. "November 6, 2017").
+        threads = split_threads(load("oldformat_chunk.md"))
+        assert any(t["date"] and t["date"].startswith("201") for t in threads)
+        # This thread's header reads "From: Wednesday, March 1, 2017 12:10 PM
+        # Sent:" — the date sits BEFORE the Sent: token and must still parse.
+        swapped = [t for t in threads if t["subject"].startswith("Super Urgent")]
+        assert swapped and swapped[0]["date"] == "2017-03-01"
+
+    def test_boundary_detector_rejects_quoted_external_header(self):
+        from pipeline.split_threads import _oldformat_boundaries
+
+        # Verbatim from A-2025-81965: a QUOTED external question header that has
+        # Sent:/Cc:/Subject: but an empty sender zone — not an export boundary.
+        external = (
+            "esentatives Mailbox\n\n## From:\n\nSent: Friday, August 1, 2025 "
+            "12:38 PM Representantsimmigration.IRCC@cic.gc.ca> Cc: Subject: "
+            "Closed Work Permits under Start-Up Visa Program\n\nunless you "
+            "recognize the sender and know the content is safe.\n"
+        )
+        assert _oldformat_boundaries(external) == []
+        # Verbatim genuine export header (From/Sent values swapped by OCR).
+        genuine = (
+            "Immigration Representatives / Représentants immigration (IRCC)\n\n"
+            "## From:\n\nOctober 1, 2025 4:03 PM\n\n## Sent:\n\nTo: Immigration "
+            "Representatives / Représentants immigration (IRCC) Cc: FW: "
+            "Clarification-REP-B-2025-1767 - Due 21-Oct-25\n\n# Subject:\n"
+        )
+        assert len(_oldformat_boundaries(genuine)) == 1
+
+
 class TestDegenerateInput:
     def test_empty_string(self):
         assert split_threads("") == []

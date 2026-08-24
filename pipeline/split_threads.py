@@ -19,13 +19,22 @@ _ARCHIVED_RE = re.compile(r"(?=Archived:)")
 # "From:", "From:,", "From Sent:" (colon lost).
 _FROM_RE = re.compile(r"(?=\bFrom:)|(?=\bFrom,?\s+Sent:)")
 
-# IRCC sender signature (accent/OCR-tolerant).
+# IRCC sender signature (accent/OCR-tolerant; old releases print the name
+# without a space, "ImmigrationRepresentatives").
 _IRCC_SENDER_RE = re.compile(
-    r"Immigration\s+Representatives"
+    r"Immigration\s?Representatives"
     r"|R[eé]?pr?[eé]sentants?\s+imm?[a-z]*igration"
     r"|\(I?RCC\)",
     re.IGNORECASE,
 )
+
+# --- old-format fallback (releases without Archived: markers) ---------------
+# Each email export starts with an Outlook header table: a From/Sent/To/Cc/
+# Subject cluster with IRCC as the sender. OCR scrambles it (heading marks,
+# From/Sent values swapped), but the cluster shape survives. Quoted question
+# headers inside a thread lack Cc: or have an empty sender zone.
+_OLD_FROM_RE = re.compile(r"(?:#+\s*)?\bFrom\s*:")
+_TIME_OR_YEAR_RE = re.compile(r"\d{1,2}:\d{2}|\b\d{4}\b")
 
 _MONTHS = {
     m: i + 1
@@ -40,8 +49,10 @@ _DATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Leading [ \t]* (not \s*) so an empty header-table Subject: cell yields an
+# empty value instead of swallowing the next body line.
 _SUBJECT_RE = re.compile(
-    r"Subject:\s*(.*?)(?=\s*(?:Importance:|Sensitivity:|CAUTION\s*:|ATTENTION\s*:"
+    r"Subject:[ \t]*(.*?)(?=\s*(?:Importance:|Sensitivity:|CAUTION\s*:|ATTENTION\s*:"
     r"|Archived:|\n|$))"
 )
 
@@ -89,8 +100,17 @@ _HEADER_RES = [
         r"\bCc\s*:\s*",
         r"Importance:\s*\w+",
         r"Sensitivity:\s*\w+",
+        r"\bImmigrationRepresentatives(?:@cic\.gc\.ca)?>?",
     ]
 ]
+
+# Lines that are pure header residue after cleaning: a bare field token
+# ("Sent:") or a lone date/time (From/Sent values scrambled loose by OCR).
+_RESIDUE_LINE_RE = re.compile(
+    r"^(?:(?:From|Sent|To|Cc|Subject|Importance|Sensitivity)\s*:?\s*)+$"
+    r"|^\w+,?\s+\w+\s+\d{1,2},?\s+\d{4}[\s\d:.,]*(?:[AP]\.?M\.?)?$",
+    re.IGNORECASE,
+)
 
 
 def normalize_subject(subject: str) -> str:
@@ -105,8 +125,13 @@ def normalize_subject(subject: str) -> str:
 
 
 def _extract_subject(block: str) -> str:
-    m = _SUBJECT_RE.search(block)
-    return normalize_subject(m.group(1)) if m else ""
+    # Old-format header tables often carry an empty "Subject:" cell (the value
+    # is displaced elsewhere by OCR) — take the first non-empty one.
+    for m in _SUBJECT_RE.finditer(block):
+        s = normalize_subject(m.group(1))
+        if s:
+            return s
+    return ""
 
 
 def _extract_date(block: str) -> str | None:
@@ -115,6 +140,11 @@ def _extract_date(block: str) -> str | None:
     if idx == -1:
         return None
     m = _DATE_RE.search(block, idx, idx + 120)
+    if not m:
+        # Old-format OCR often swaps From/Sent values, leaving the date just
+        # BEFORE the Sent: token. (60 chars is too short to reach back to the
+        # Archived: timestamp in new-format headers.)
+        m = _DATE_RE.search(block, max(0, idx - 60), idx)
     if not m:
         return None
     month = _MONTHS[m.group(1).lower()]
@@ -134,6 +164,8 @@ def _clean_body(text: str) -> str:
         line = re.sub(r"\s+", " ", line).strip()
         if not line or not re.search(r"[A-Za-zÀ-ÿ]{2}", line):
             continue  # empty or punctuation/stamp residue
+        if _RESIDUE_LINE_RE.match(line):
+            continue  # bare header token or a scrambled-loose date line
         lines.append(line)
     return "\n".join(lines).strip()
 
@@ -148,15 +180,18 @@ def _is_ircc_sender(segment: str) -> bool:
     return bool(_IRCC_SENDER_RE.search(head))
 
 
-def _extract_qa(block: str) -> tuple[str | None, str | None]:
+def _extract_qa(block: str, first_is_answer: bool = False) -> tuple[str | None, str | None]:
     segments = _FROM_RE.split(block)
     answers: list[str] = []
     question: str | None = None
-    for seg in segments[1:]:  # segments[0] precedes the first From header
+    for i, seg in enumerate(segments[1:]):  # segments[0] precedes the first From header
         body = _clean_body(seg)
         if not body:
             continue
-        if _is_ircc_sender(seg):
+        # In old-format exports the block starts at the IRCC reply's own header
+        # (that's the boundary signal), so the first email is the answer even
+        # when OCR scrambled the sender name out of the From: line.
+        if (first_is_answer and i == 0) or _is_ircc_sender(seg):
             answers.append(body)
         elif question is None:
             question = body
@@ -164,8 +199,25 @@ def _extract_qa(block: str) -> tuple[str | None, str | None]:
     return question, answer
 
 
-def _make_thread(block: str) -> dict:
-    question, answer = _extract_qa(block)
+def _oldformat_boundaries(text: str) -> list[int]:
+    """Start offsets of Outlook export header clusters in old-format text."""
+    bounds = []
+    for m in _OLD_FROM_RE.finditer(text):
+        after = text[m.end(): m.end() + 450]
+        sent_at = after.find("Sent:")
+        if not (0 <= sent_at <= 300) or "Cc:" not in after or "Subject:" not in after:
+            continue
+        # Sender zone must show IRCC or a swapped-in date; quoted question
+        # headers ("From: Sent: ...") have an empty zone.
+        zone = after[:sent_at]
+        if not (_IRCC_SENDER_RE.search(zone) or _TIME_OR_YEAR_RE.search(zone)):
+            continue
+        bounds.append(m.start())
+    return bounds
+
+
+def _make_thread(block: str, first_is_answer: bool = False) -> dict:
+    question, answer = _extract_qa(block, first_is_answer)
     return {
         "subject": _extract_subject(block),
         "date": _extract_date(block),
@@ -179,14 +231,31 @@ def split_threads(text: str) -> list[dict]:
     """Split raw OCR markdown into thread dicts (one per Archived: email export)."""
     if not text or not text.strip():
         return []
-    parts = _ARCHIVED_RE.split(text)
     threads: list[dict] = []
-    # Text before the first Archived: marker is a continuation tail from a
-    # previous chunk — keep it only if it carries a Subject: header.
-    head = parts[0]
+    if _ARCHIVED_RE.search(text):
+        parts = _ARCHIVED_RE.split(text)
+        # Text before the first Archived: marker is a continuation tail from a
+        # previous chunk — keep it only if it carries a Subject: header.
+        head = parts[0]
+        if head.strip() and "Subject:" in head:
+            threads.append(_make_thread(head))
+        for block in parts[1:]:
+            if block.strip():
+                threads.append(_make_thread(block))
+        return threads
+    # Old-format fallback: no Archived: markers; split at export header
+    # clusters. Each export leads with the IRCC reply.
+    bounds = _oldformat_boundaries(text)
+    if not bounds:
+        # No boundaries at all: a lone torn block is kept only with a Subject:.
+        if "Subject:" in text:
+            threads.append(_make_thread(text))
+        return threads
+    head = text[: bounds[0]]
     if head.strip() and "Subject:" in head:
         threads.append(_make_thread(head))
-    for block in parts[1:]:
+    for start, end in zip(bounds, bounds[1:] + [len(text)]):
+        block = text[start:end]
         if block.strip():
-            threads.append(_make_thread(block))
+            threads.append(_make_thread(block, first_is_answer=True))
     return threads
