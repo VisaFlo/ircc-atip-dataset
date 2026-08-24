@@ -15,8 +15,14 @@ from __future__ import annotations
 import re
 
 # Threads whose stripped answer keeps at least this many characters carry
-# substantive guidance. Pure-boilerplate replies in the real releases strip to
-# well under 100 chars; the shortest genuine answers keep several hundred.
+# substantive guidance. Post-fix corpus measurement (1,374 answers, 2026-08):
+# pure-boilerplate replies strip to <= 182 chars even with worst-case OCR
+# debris; the last redirect-only reply sits at 199; genuine short answers
+# start at 201 (a portal-enrolment confirmation) with the first unambiguous
+# guidance at 214 ("Yes, as long as the LMIA is still valid..."). 200 keeps
+# every observed boilerplate reply below and every genuine answer above. The
+# 199/201 margin is thin but inherent: that band is a continuum of
+# pointer-style replies, not a real gap in the data.
 MIN_SUBSTANCE_CHARS = 200
 
 # Marker injected by the OCR stage when a page could not be read.
@@ -58,7 +64,8 @@ BOILERPLATE_PATTERNS = [
     # submit the IRCC Web form." — OCR often tears off the leading clause;
     # A-2025-85182_00000 shows "... submit a Webform at: [http://...](...)".
     r"(?:If you have case specific )?questions about a file, you are encouraged "
-    r"to submit (?:the |a )?(?:IRCC )?Web ?form(?: at ?: ?\S+)?[-.]?(?:Canada\.ca\S*)?\.?",
+    # OCR drops the I of IRCC ("submit the RCC Web form"), hence [Il]?RCC.
+    r"to submit (?:the |a )?(?:[Il]?RCC )?Web ?form(?: at ?: ?\S+)?[-.]?(?:Canada\.ca\S*)?\.?",
     # "Please see our response to your question." and the "***" separators
     # around it.
     r"Please see our response to your question\.?",
@@ -71,7 +78,7 @@ BOILERPLATE_PATTERNS = [
     r"For updates on applications outside of normal processing times, requests "
     r"for expedited processing of an application, or if clients wish to report "
     r"important changes to their application information[,.]?",
-    r"please fill out the IRCC Web form[-\s]?Canada\.ca\S*",
+    r"please fill out the [Il]?RCC Web ?form[-\s]?Canada\.ca\S*",
     r"(?:_?or )?you can use existing client support channels(?: available on our "
     r"website to communicate with us)?\.?",
     r"available on our website to communicate with us\.?",  # torn tail of the above
@@ -85,6 +92,12 @@ BOILERPLATE_PATTERNS = [
     r"Please note th(?:is|at this) request is outside our scope to assist with "
     r"and no further action will be taken including forwarding emails to any "
     r"team ?/ ?department or any further correspondence\.?",
+    # Torn tail of the refusal above — OCR often severs the sentence head,
+    # leaving "and no further action will be taken including forwarding
+    # emails to any team/department or any further correspondence." dangling
+    # after another stripped block (A-2025-81965_00760).
+    r"(?:and )?no further action will be taken including forwarding emails "
+    r"to any team ?/ ?department or any further correspondence\.?",
     # "The Immigration Representative inbox is responsible for general
     # enquiries received from authorized immigration representatives and
     # lawyers with respect to general procedures and operational policies for
@@ -179,13 +192,22 @@ BOILERPLATE_PATTERNS = [
     # signature line).
     r"La bo[iî]te [ée]lectronique pour les repr[ée]sentants en immigration[,.]?",
     r"(?:The )?Immigration Representatives?\s?(?:Mailbox|Inbox)[,.]?",
+    # Outlook header residue glued into bodies: "Categories: Case Specific
+    # Request" / "Case Specific Request Categories:" / "Categories: Awaiting
+    # Credentials" (A-2025-81965).
+    r"(?:Case Specific Request )?Categories ?: ?(?:Case Specific Request|Awaiting Credentials)?",
     # OCR-garbled sender line residue: "Immigraton Representatives /
     # Représentants immigration (IRCC)", "mmmmgtauon nepresenauves /
     # neprésentants immigration (IRCC)", "... (IRCC) Attachments:".
     r"[A-Za-zÀ-ÿ:,. ]{0,60}/ ?[A-Za-zÀ-ÿ]{0,25} ?immigration ?\(I?RCC\)(?: Attachments ?:)?",
     # Tracking stamps glued into bodies: "(AB-2025-269) - Due Nov 29/25",
     # "REP-B-2025-2095 - Due 28-Nov-25", "2025-294) Due 26 Nov 2025".
-    r"\(?(?:[A-Z]{2,4}-)?(?:B-)?20\d{2}-\d{3,4}\)?",
+    # A bare "20xx-xxxx" is only a stamp with a code prefix, a closing paren,
+    # or a following "Due" — never eat year ranges like "2024-2026
+    # Immigration Levels Plan".
+    r"\(?[A-Z]{2,4}-B?-? ?20\d{2}-\d{3,4}\)?",
+    r"\(?20\d{2}-\d{3,4}\)",
+    r"20\d{2}-\d{3,4}(?=,? ?-? ?Due\b)",
     r"-? ?Due,? ?\d{0,2}[- ]?[A-Za-z]{3,9}[- .,]?\d{0,2},? ?(?:20)?\d{2}(?:/\d{2})?",
 ]
 
@@ -205,7 +227,7 @@ DEFLECTION_SIGNAL_PATTERNS = [
     # "cette demande ne relève pas de notre compétence"
     r"ne rel[eè]ve pas de notre comp[ée]tence",
     # redirect-only bodies
-    r"please fill out the IRCC Web form",
+    r"please fill out the [Il]?RCC Web ?form",
     r"client support channels",
     r"available on our website to communicate with us",
     r"Client Support Centre",
@@ -242,6 +264,9 @@ def classify(thread: dict) -> str:
     substance = strip_boilerplate(answer)
     if len(substance) >= MIN_SUBSTANCE_CHARS:
         return "answered"
-    if any(rx.search(answer) for rx in _DEFLECTION_SIGNAL_RES):
+    # Collapse whitespace before signal search: OCR wraps phrases across
+    # lines ("we do not answer case-\nspecific inquiries").
+    flat = re.sub(r"\s+", " ", answer)
+    if any(rx.search(flat) for rx in _DEFLECTION_SIGNAL_RES):
         return "deflected"
     return "partial"

@@ -110,6 +110,68 @@ def test_truncated_fragment_is_partial():
     assert classify(t) == "partial"
 
 
+def test_ocr_dropped_i_in_ircc_still_deflects():
+    # Real thread (A-2025-81965_00760.md, "Co-op work authorization while
+    # application in process"): pure refusal, but OCR printed "RCC Web form"
+    # (dropped I) and left "Categories: Case Specific Request" residue plus
+    # the torn "no further action will be taken..." tail. All three must
+    # strip, or this boilerplate-only reply misfiles as answered.
+    answer = (
+        "Dec-25\nCategories: Case Specific Request\nHello,\n"
+        "Thank you for contacting the Immigration Representatives Mailbox.\n"
+        "Please note that we do not answer case specific inquiries, and no "
+        "further action will be taken including forwarding emails to any "
+        "team/department or any further correspondence. The Immigration "
+        "Representative inbox is responsible for general enquiries received "
+        "from authorized immigration representatives and lawyers with respect "
+        "to general procedures and operational policies for the various "
+        "immigration lines of business including permanent residence, "
+        "temporary residence, asylum, citizenship and program integrity.\n"
+        "For updates on applications outside of normal processing times, "
+        "requests for expedited processing of an application, or if clients "
+        "wish to report important changes to their application information, "
+        "please fill out the RCC Web form-Canada.ca or you can use existing "
+        "client support channels available on our website to communicate "
+        "with us.\nThank you,\nThe Immigration Representatives Mailbox"
+    )
+    t = {"subject": "Co-op work authorization while application in process",
+         "date": "2025-11-14", "raw": answer, "question": None, "answer": answer}
+    assert classify(t) == "deflected"
+
+
+def test_line_wrapped_deflection_signal_is_found():
+    # Real thread (A-2025-85182_00520.md, "Clarification on PGWP Eligibility -
+    # Involuntary Part-Time Semester"): OCR wraps "case-\nspecific" across a
+    # line break, so signals must be searched on whitespace-collapsed text.
+    # The body beyond boilerplate is only a webpage pointer -> deflected.
+    answer = (
+        "Good day,\nThank you for contacting the Immigration Representatives "
+        "Mailbox. Please note that this mailbox is intended for general "
+        "guidance and does not provide responses to case-\nspecific inquiries "
+        "but have provided the following information as guidance. If you have "
+        "case specific\nquestions about a file, you are encouraged to submit "
+        "the IRCC Web form.\nPlease see our response to your question.\n"
+        "*** Please review Part-time status for final academic session' in "
+        "Post-graduation work permit (PGWP) [R205(c) - C43] -\nInternational "
+        "Mobility Program-Canada.ca. We hope you find this information "
+        "helpful.\nThank you kindly,\nThe Immigration Representatives Mailbox"
+    )
+    t = {"subject": "Clarification on PGWP Eligibility", "date": "2025-11-27",
+         "raw": answer, "question": None, "answer": answer}
+    assert classify(t) == "deflected"
+
+
+def test_stamp_pattern_spares_year_ranges():
+    # "2024-2026" looks like a tracking stamp to a naive 20\d{2}-\d{3,4}
+    # pattern but is a year range; it must survive stripping.
+    from pipeline.quality import strip_boilerplate
+    kept = strip_boilerplate("Details are in the 2024-2026 Immigration Levels Plan.")
+    assert "2024-2026 Immigration Levels Plan" in kept
+    # while real stamps still strip:
+    assert "REP-B-2025-2095" not in strip_boilerplate("REP-B-2025-2095 - Due 28-Nov-25 some text")
+    assert "(AB-2025-269)" not in strip_boilerplate("(AB-2025-269) - Due Nov 29/25 some text")
+
+
 # ------------------------------------------------------------------ sweep
 
 @pytest.mark.parametrize(
