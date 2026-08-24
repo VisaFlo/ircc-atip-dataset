@@ -232,3 +232,25 @@ class TestInlineQAFallback:
         threads = split_threads(load("inline_qa_chunk.md"))
         t = threads[0]  # DLI off-campus thread: has a real quoted From: email
         assert t["question"] and "off-campus" in t["question"].lower()
+
+
+class TestRfcHeaderScrub:
+    def test_no_rfc_sent_lines_leak_into_bodies(self):
+        threads = split_threads(load("inline_qa_chunk.md"))
+        for t in threads:
+            for body in (t["question"], t["answer"]):
+                if body is None:
+                    continue
+                for line in body.splitlines():
+                    assert not line.startswith("Sent:"), f"leaked header: {line!r}"
+
+    def test_mail_received_time_residue_is_scrubbed(self):
+        from pipeline.split_threads import _clean_body
+
+        # Verbatim residue shape from A-2021-10864_part_3_00720.
+        body = _clean_body(
+            "Hello,\n\nMail received time: Mon, 8 May 2017 15:02:30\n\n"
+            "Thank you for your enquiry.\n"
+        )
+        assert "Mail received time" not in body
+        assert "Thank you for your enquiry." in body

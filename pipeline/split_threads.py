@@ -127,6 +127,14 @@ _HEADER_RES = [
     re.compile(p)
     for p in [
         r"Sent:\s*(?:\w+day,?\s*)?\w+\s+\d{1,2},?\s+\d{4},?\s*(?:at\s+)?\d{1,2}:\d{2}(?::\d{2})?\s*(?i:[AP]\.?M\.?)",
+        # RFC day-first form (13309 headers; 10864 "Mail received time"):
+        # "Sent: Tue, 1 Oct 2024 14:43:10" — 24h time, no AM/PM.
+        r"(?:Sent|Mail received time):\s*(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s*)?"
+        r"\d{1,2}\s+\w{3,9}\.?,?\s+\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?",
+        # Catch-all for OCR-mangled Sent dates ("201/", "Thursdav.", "PIVI"
+        # for PM): anchored on a trailing time+meridian within 45 chars of
+        # Sent:, so it can never consume real body content.
+        r"Sent:[^\n]{0,45}?\d{1,2}[.:]\d{2}(?:[.:]\d{2})?\s*(?:[AP]\.?M\.?|PIVI|PIMI|AIVI|PIM|AVI|PV|AV)\b",
         r"Archived:\s*(?:\w+day,?\s*)?\w+\s+\d{1,2},?\s+\d{4},?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?i:[AP]\.?M\.?)",
         r"(?i:Immigration Representatives\s*/?\s*R[eé]\S*sentants?\s+im\w+igration\s*\(I?RCC\))",
         r"<?(?i:IRCC\.?ImmigrationRepresentatives)-?\s*",
@@ -148,7 +156,8 @@ _HEADER_RES = [
 # observed real residue lines carry that comma.
 _RESIDUE_LINE_RE = re.compile(
     r"^(?:(?:From|Sent|To|Cc|Subject|Importance|Sensitivity)\s*:?\s*)+$"
-    r"|^\w+,\s+\w+\s+\d{1,2},?\s+\d{4}[\s\d:.,]*(?:[AP]\.?M\.?)?$",
+    r"|^\w+,\s+\w+\s+\d{1,2},?\s+\d{4}[\s\d:.,]*(?:[AP]\.?M\.?)?$"
+    r"|^\w+,\s+\d{1,2}\s+\w{3,9}\.?,?\s+\d{4}[\s\d:.,]*$",
     re.IGNORECASE,
 )
 
