@@ -16,8 +16,11 @@ import re
 _ARCHIVED_RE = re.compile(r"(?=Archived:)")
 
 # Email sub-blocks start at a From header. OCR variants seen in real data:
-# "From:", "From:,", "From Sent:" (colon lost).
-_FROM_RE = re.compile(r"(?=\bFrom:)|(?=\bFrom,?\s+Sent:)")
+# "From:", "From :", "From:,", "From Sent:" (colon lost). Must accept at least
+# everything _OLD_FROM_RE accepts, or an old-format boundary would start a
+# block whose first email is not recognized as a segment (silently swapping
+# question and answer).
+_FROM_RE = re.compile(r"(?=\bFrom\s*:)|(?=\bFrom,?\s+Sent:)")
 
 # IRCC sender signature (accent/OCR-tolerant; old releases print the name
 # without a space, "ImmigrationRepresentatives").
@@ -35,6 +38,16 @@ _IRCC_SENDER_RE = re.compile(
 # headers inside a thread lack Cc: or have an empty sender zone.
 _OLD_FROM_RE = re.compile(r"(?:#+\s*)?\bFrom\s*:")
 _TIME_OR_YEAR_RE = re.compile(r"\d{1,2}:\d{2}|\b\d{4}\b")
+
+# Window sizes for old-format header-cluster detection, from observed OCR
+# scatter in the real releases:
+_SENT_WINDOW = 300  # Sent: must appear this close after From: in a real header
+_HEADER_CLUSTER_SPAN = 450  # max observed OCR scatter of one header table
+
+# Date-parsing windows around the first Sent: token:
+_DATE_FWD_WINDOW = 120  # normal order: "Sent: Friday, November 21, 2025 ..."
+_DATE_BACK_WINDOW = 60  # OCR-swapped order; short enough not to reach an
+# Archived: timestamp in new-format headers (>= ~82 chars away in real data)
 
 _MONTHS = {
     m: i + 1
@@ -78,9 +91,17 @@ _NOISE_RES = [
         r"(?:and|et)\s+Cit[a-z]*yennet[ée]\s+Cana\w+",
         r"and\s+Cit[a-z]*zens?hip\s+Cana\w+",
         r"s\.\s?19\(1\)",
-        r"(?<![\d-])\d{6}(?![\d-])",  # ATIP page stamps like 000041
+        # ATIP page stamps like 000041. Collateral: also eats legitimate
+        # standalone 6-digit figures in body prose (rare); `raw` preserves them.
+        r"(?<![\d-])\d{6}(?![\d-])",
     ]
 ]
+
+# The quoted Subject: line inside a body, scrubbed FIRST — before the noise
+# banners it often runs into (see _clean_body ordering).
+_SUBJECT_SCRUB_RE = re.compile(
+    r"Subject:\s*[^\n]{0,200}?(?=CAUTION\s*:|ATTENTION\s*:|Importance:|Sensitivity:|From:|\n|$)"
+)
 
 # Header fields scrubbed from bodies (OCR often glues them onto body lines).
 # Case-sensitive on the field tokens so body words like "to"/"from" survive;
@@ -88,7 +109,6 @@ _NOISE_RES = [
 _HEADER_RES = [
     re.compile(p)
     for p in [
-        r"Subject:\s*[^\n]{0,200}?(?=CAUTION\s*:|ATTENTION\s*:|Importance:|Sensitivity:|From:|\n|$)",
         r"Sent:\s*(?:\w+day,?\s*)?\w+\s+\d{1,2},?\s+\d{4},?\s*(?:at\s+)?\d{1,2}:\d{2}(?::\d{2})?\s*(?i:[AP]\.?M\.?)",
         r"Archived:\s*(?:\w+day,?\s*)?\w+\s+\d{1,2},?\s+\d{4},?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?i:[AP]\.?M\.?)",
         r"(?i:Immigration Representatives\s*/?\s*R[eé]\S*sentants?\s+im\w+igration\s*\(I?RCC\))",
@@ -106,9 +126,12 @@ _HEADER_RES = [
 
 # Lines that are pure header residue after cleaning: a bare field token
 # ("Sent:") or a lone date/time (From/Sent values scrambled loose by OCR).
+# The date alternative requires the weekday comma ("Thursday, Auqust 24, ...")
+# so wrapped prose lines like "on January 1, 2025" are never deleted; all
+# observed real residue lines carry that comma.
 _RESIDUE_LINE_RE = re.compile(
     r"^(?:(?:From|Sent|To|Cc|Subject|Importance|Sensitivity)\s*:?\s*)+$"
-    r"|^\w+,?\s+\w+\s+\d{1,2},?\s+\d{4}[\s\d:.,]*(?:[AP]\.?M\.?)?$",
+    r"|^\w+,\s+\w+\s+\d{1,2},?\s+\d{4}[\s\d:.,]*(?:[AP]\.?M\.?)?$",
     re.IGNORECASE,
 )
 
@@ -139,12 +162,12 @@ def _extract_date(block: str) -> str | None:
     idx = block.find("Sent:")
     if idx == -1:
         return None
-    m = _DATE_RE.search(block, idx, idx + 120)
+    m = _DATE_RE.search(block, idx, idx + _DATE_FWD_WINDOW)
     if not m:
         # Old-format OCR often swaps From/Sent values, leaving the date just
         # BEFORE the Sent: token. (60 chars is too short to reach back to the
         # Archived: timestamp in new-format headers.)
-        m = _DATE_RE.search(block, max(0, idx - 60), idx)
+        m = _DATE_RE.search(block, max(0, idx - _DATE_BACK_WINDOW), idx)
     if not m:
         return None
     month = _MONTHS[m.group(1).lower()]
@@ -152,11 +175,10 @@ def _extract_date(block: str) -> str | None:
 
 
 def _clean_body(text: str) -> str:
-    for rx in _HEADER_RES[:1]:  # Subject line first, before banner removal
-        text = rx.sub(" ", text)
+    text = _SUBJECT_SCRUB_RE.sub(" ", text)  # before banners: subjects run into them
     for rx in _NOISE_RES:
         text = rx.sub(" ", text)
-    for rx in _HEADER_RES[1:]:
+    for rx in _HEADER_RES:
         text = rx.sub(" ", text)
     lines = []
     for line in text.splitlines():
@@ -203,9 +225,9 @@ def _oldformat_boundaries(text: str) -> list[int]:
     """Start offsets of Outlook export header clusters in old-format text."""
     bounds = []
     for m in _OLD_FROM_RE.finditer(text):
-        after = text[m.end(): m.end() + 450]
+        after = text[m.end(): m.end() + _HEADER_CLUSTER_SPAN]
         sent_at = after.find("Sent:")
-        if not (0 <= sent_at <= 300) or "Cc:" not in after or "Subject:" not in after:
+        if not (0 <= sent_at <= _SENT_WINDOW) or "Cc:" not in after or "Subject:" not in after:
             continue
         # Sender zone must show IRCC or a swapped-in date; quoted question
         # headers ("From: Sent: ...") have an empty zone.

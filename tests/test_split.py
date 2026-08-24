@@ -15,7 +15,8 @@ def load(name: str) -> str:
 class TestBoundaries:
     def test_boundary_chunk_splits_into_multiple_threads(self):
         threads = split_threads(load("boundary_chunk.md"))
-        assert len(threads) >= 2
+        # Exact count for this fixture; regenerating the fixture? update this.
+        assert len(threads) == 19
 
     def test_every_boundary_thread_has_subject(self):
         threads = split_threads(load("boundary_chunk.md"))
@@ -32,8 +33,8 @@ class TestBoundaries:
     def test_raw_is_verbatim_slice_of_input(self):
         text = load("boundary_chunk.md")
         threads = split_threads(text)
-        for t in threads:
-            assert t["raw"] in text
+        # Joined raws reconstruct the input minus the dropped subject-less head.
+        assert text.endswith("".join(t["raw"] for t in threads))
 
 
 class TestQuestionAnswer:
@@ -91,10 +92,37 @@ class TestOldFormatFallback:
     header-table exports: From/Sent/To/Cc/Subject cluster with IRCC as sender."""
 
     def test_oldformat_chunk_splits_into_many_threads(self):
-        # Manual inspection of the fixture found 16 export headers (~40 pages).
+        # Exact count for this fixture (~40 pages, one thread per 2-4 pages);
+        # regenerating the fixture? update this.
         threads = split_threads(load("oldformat_chunk.md"))
-        assert len(threads) >= 12, f"got {len(threads)} threads, expected ~16"
-        assert len(threads) <= 25, f"over-split: {len(threads)} threads"
+        assert len(threads) == 17
+
+    def test_oldformat_raw_reconstructs_input(self):
+        text = load("oldformat_chunk.md")
+        threads = split_threads(text)
+        # Joined raws reconstruct the input minus the dropped subject-less head.
+        assert text.endswith("".join(t["raw"] for t in threads))
+
+    def test_every_boundary_is_a_from_split_point(self):
+        # _OLD_FROM_RE (boundary detection) must never accept a From token that
+        # _FROM_RE (email segmentation) rejects: the block would then start
+        # with an unrecognized first email, silently swapping question/answer.
+        from pipeline.split_threads import _FROM_RE, _oldformat_boundaries
+
+        text = load("oldformat_chunk.md")
+        bounds = _oldformat_boundaries(text)
+        assert bounds
+        for b in bounds:
+            # The boundary may start at a "#### " heading prefix before From:.
+            assert _FROM_RE.search(text, b, b + 16), f"no From split at {b}"
+        # And the tolerance must hold for every OCR variant _OLD_FROM_RE
+        # accepts, not just those present in this fixture ("From :" is the
+        # variant that diverged once).
+        from pipeline.split_threads import _OLD_FROM_RE
+
+        for variant in ["From: X", "From : X", "From  : X", "#### From : X"]:
+            assert _OLD_FROM_RE.search(variant)
+            assert _FROM_RE.search(variant), f"_FROM_RE rejects {variant!r}"
 
     def test_oldformat_threads_have_subjects(self):
         threads = split_threads(load("oldformat_chunk.md"))
@@ -160,5 +188,7 @@ class TestDegenerateInput:
         assert split_threads("lorem ipsum\nno emails here\n12345\n") == []
 
     def test_torn_tail_without_subject_is_dropped(self):
-        # Text before the first Archived: with no Subject: line is a torn tail.
+        # No Archived: marker and no old-format boundaries either: exercises
+        # the no-boundary fallback path, which keeps a lone block only if it
+        # carries a Subject: line.
         assert split_threads("some continuation body text\nwith no headers at all\n") == []
