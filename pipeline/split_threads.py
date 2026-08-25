@@ -60,6 +60,17 @@ _MONTHS = {
     )
 }
 _MONTHS_ABBR = {m[:3]: n for m, n in _MONTHS.items()}
+
+# OCR mangles month names in ways that used to crash the parser outright
+# (a Turkish dotless "ı" in "aprıl" raised KeyError and killed a whole run).
+# Normalise the known look-alikes, then look up defensively: an unparseable
+# date must degrade to None, never abort the pipeline.
+_OCR_LOOKALIKES = str.maketrans({"ı": "i", "İ": "i", "ﬁ": "fi", "０": "0"})
+
+
+def _month_num(name, table):
+    return table.get(name.translate(_OCR_LOOKALIKES).lower())
+
 _DATE_RE = re.compile(
     r"(January|February|March|April|May|June|July|August|September|October"
     r"|November|December)\s+(\d{1,2}),?\s+(\d{4})",
@@ -190,19 +201,25 @@ def _extract_date(block: str) -> str | None:
         return None
     m = _DATE_RE.search(block, idx, idx + _DATE_FWD_WINDOW)
     if m:
-        month, day = _MONTHS[m.group(1).lower()], m.group(2)
+        month, day = _month_num(m.group(1), _MONTHS), m.group(2)
+        if month is None:
+            return None
     else:
         rfc = _DATE_RFC_RE.search(block, idx, idx + _DATE_FWD_WINDOW)
         if rfc:  # day-first RFC style: "Sent: Tue, 1 Oct 2024 14:43:10"
             m, day = rfc, rfc.group(1)
-            month = _MONTHS_ABBR[rfc.group(2).lower()]
+            month = _month_num(rfc.group(2), _MONTHS_ABBR)
+            if month is None:
+                return None
         else:
             # Old-format OCR often swaps From/Sent values, leaving the date
             # just BEFORE the Sent: token.
             m = _DATE_RE.search(block, max(0, idx - _DATE_BACK_WINDOW), idx)
             if not m:
                 return None
-            month, day = _MONTHS[m.group(1).lower()], m.group(2)
+            month, day = _month_num(m.group(1), _MONTHS), m.group(2)
+        if month is None:
+            return None
     return f"{int(m.group(3)):04d}-{month:02d}-{int(day):02d}"
 
 

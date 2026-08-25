@@ -290,3 +290,33 @@ class TestMixedFormatFiles:
         # Chunk-level sweep of the same release yielded 295 threads; the
         # full-file merge must land within +-15% of that.
         assert 251 <= n <= 339, f"full-file count {n} outside 251..339"
+
+
+def test_ocr_mangled_month_is_recovered():
+    """A dotless Turkish "i" in a month name used to raise KeyError and abort a
+    whole pipeline run. The look-alike is now normalised, so the date parses."""
+    text = (
+        "Archived: Monday, aprıl 7, 2025 9:00:00 AM\n"
+        "From: Immigration Representatives / Représentants immigration (IRCC)\n"
+        "Sent: aprıl 7, 2025 9:00:00 AM\n"
+        "Subject: Test thread with mangled month\n"
+        "Some answer body text here.\n"
+    )
+    threads = split_threads(text)
+    assert len(threads) == 1
+    assert threads[0]["subject"] == "Test thread with mangled month"
+    assert threads[0]["date"] == "2025-04-07"
+
+
+def test_unrecoverable_month_degrades_to_none():
+    """A month name we cannot map must yield date=None, never an exception."""
+    text = (
+        "Archived: Monday, xyzzy 7, 2025 9:00:00 AM\n"
+        "From: Immigration Representatives / Représentants immigration (IRCC)\n"
+        "Sent: xyzzy 7, 2025 9:00:00 AM\n"
+        "Subject: Unmappable month\n"
+        "Body text.\n"
+    )
+    threads = split_threads(text)
+    assert len(threads) == 1
+    assert threads[0]["date"] is None
