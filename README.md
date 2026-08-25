@@ -38,7 +38,7 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 | [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
 <!-- /STATS:TABLE -->
 
-No clone, no dependencies:
+**Working with it in code?** No clone, no dependencies:
 
 ```python
 import json, urllib.request
@@ -53,6 +53,33 @@ for year in index["by_year"]:
 hits = [t for t in threads if "biometric" in (t.get("answer") or "").lower()]
 print(len(threads), "threads,", len(hits), "mentioning biometrics")
 ```
+
+## How to use it (no coding)
+
+**Just want to look something up?** Open a year file on GitHub and use your browser's
+find (Cmd/Ctrl+F). `data/2025.json` is the most recent year; each entry has the
+representative's question and IRCC's reply in full.
+
+**Prefer a spreadsheet?** Every file is JSON. Paste one into any free JSON-to-CSV
+converter and open it in Excel or Google Sheets, then filter by `subject` or `quality`.
+
+**Want the original document?** Every entry lists its `atip_release` (for example
+`A-2025-72666`). The matching PDF, exactly as IRCC released it, is under
+[Releases](../../releases). That's what you'd cite or show a client.
+
+**What's actually in here.** Some counts, so you know whether it's worth your time:
+
+| Topic | Threads mentioning it |
+|---|---|
+| Study permits | 927 |
+| PGWP | 428 |
+| Spousal / common-law | 212 |
+| Police certificates | 41 |
+| Proof of funds | 24 |
+
+A caution worth repeating: these are IRCC's procedural answers to other representatives,
+at the time they were written. Policy moves. Treat a thread as a lead to verify, not as
+current authority, and check the date on every one.
 
 ## Why this exists
 
