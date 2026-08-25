@@ -1,15 +1,15 @@
 # IRCC ATIP Dataset
 
 <!-- STATS:HERO -->
-> 32,697 pages of IRCC records obtained under the Access to Information Act,
+> 32,765 pages of IRCC records obtained under the Access to Information Act,
 > parsed into 7,806 searchable answers to licensed immigration representatives
-> plus 18 internal officer manuals. Free, open, and still growing.
+> plus 32 internal officer manuals. Free, open, and still growing.
 <!-- /STATS:HERO -->
 
 <!-- STATS:BADGES -->
-![source pages](https://img.shields.io/badge/source%20pages-32,697-blue)
+![source pages](https://img.shields.io/badge/source%20pages-32,765-blue)
 ![threads](https://img.shields.io/badge/threads-7,806-blue)
-![manuals](https://img.shields.io/badge/manuals-18-blue)
+![manuals](https://img.shields.io/badge/manuals-32-blue)
 ![coverage](https://img.shields.io/badge/coverage-2016--2025-blue)
 ![data](https://img.shields.io/badge/data-OGL--Canada-green)
 ![code](https://img.shields.io/badge/code-MIT-green)
@@ -38,7 +38,7 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 | [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 1,669 |
 | [`data/undated.json`](data/undated.json) | Threads with no parseable date | 365 |
 | [`data/index.json`](data/index.json) | Counts by year, quality, ATIP release | — |
-| [`manuals/`](manuals/) | OCR text of 18 internal IRCC documents | — |
+| [`manuals/`](manuals/) | OCR text of 32 internal IRCC documents | — |
 | [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
 <!-- /STATS:TABLE -->
 

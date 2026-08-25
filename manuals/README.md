@@ -1,6 +1,35 @@
 # IRCC internal manuals corpus
 
-OCR-extracted text of IRCC internal manuals and assessments released under the Access to Information Act. Scanned PDFs made searchable. OCR noise expected; source PDFs are authoritative (see repo Releases and provenance notes per file).
+OCR-extracted text of IRCC internal manuals, procedures and assessments released under the Access to Information Act. Scanned PDFs made searchable.
+
+OCR noise is expected throughout — these are scans of printed and redacted pages. The source PDFs are authoritative (see repo Releases and the provenance note at the top of each file).
+
+## Obtained by our own ATIP requests
+
+Requested free of charge through the informal-request route on open.canada.ca. Anyone can re-request the same packages by ATIP number; see [`../sources.md`](../sources.md).
+
+| Document | Release |
+|---|---|
+| [GCMS Coding Manual: Responsibility Centre & Office Codes (3,570p)](gcms-responsibility-centre-codes.md) | 2A-2021-12699 |
+| [Client Support Centre: Webform Response Templates & Alpha Tool (2,212p)](webform-response-templates.md) | 2A-2020-81546 |
+| [Case-Specific Enquiry Workflows, WF1–WF9 (1,126p)](cse-workflow-procedures.md) | 2A-2023-69156 |
+| [Functional Guidance Repository, incl. PRRA/ERAR Aide-Mémoire (565p)](functional-guidance-repository.md) | 2A-2019-16114 |
+| [Third-Party Authorization & IMM 5475/5476 Handling (542p)](third-party-authorization-procedures.md) | 2A-2024-90101 |
+| [Temporary Residence Applications by Paid Representative, 2015–2021 (516p)](tr-applications-by-representative-stats.md) | 1A-2022-01245 |
+| [Bulk Approval Standard Operating Procedure (318p)](bulk-approval-sop.md) | 2A-2024-71637 |
+| [Officer Manual Transition: Internal Correspondence (306p)](officer-manual-transition-emails.md) | 1A-2022-97864 |
+| [Express Entry R10 Review Manual 2024 — release A (289p)](r10-review-manual-ee-2024-a2A64537.md) | 2A-2024-64537 |
+| [Express Entry R10 Review Manual 2024 — release B (257p)](r10-review-manual-ee-2024-b2A71640.md) | 2A-2024-71640 |
+| [Guidance for Applications Submitted by Representatives via the PR Portal (245p)](pr-portal-representative-guidance.md) | 2A-2024-64526 |
+| [Chinook 1.5 Module 3: TRV Journey Lab User Manual (110p)](chinook-1.5-module-3-user-manual.md) | A-2021-32823 |
+| [Chinook: Algorithmic Impact Assessment, GBA+ and Statistics (68p)](chinook-aia-gba-statistics.md) | 2A-2024-90730 |
+| [GCMS Full Outage: Post-Incident Report (39p)](gcms-full-outage-incident-report.md) | 1A-2025-13519 |
+
+The two R10 Review Manual releases are the same manual disclosed twice under different ATIP requests. Their redactions differ, so each contains passages the other withholds — read both.
+
+## Collected from public archives
+
+Released to earlier requesters who published them, or proactively published by IRCC. Included here so the corpus is searchable in one place; credit stays with whoever obtained them.
 
 | Document | Provenance |
 |---|---|
