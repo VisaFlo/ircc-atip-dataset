@@ -1,4 +1,4 @@
-# Open IRCC Dataset
+# IRCC ATIP Dataset
 
 <!-- STATS:HERO -->
 > 32,697 pages of IRCC records obtained under the Access to Information Act,
@@ -47,7 +47,7 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 ```python
 import json, urllib.request
 
-BASE = "https://raw.githubusercontent.com/VisaFlo/open-ircc-dataset/main/data"
+BASE = "https://raw.githubusercontent.com/VisaFlo/ircc-atip-dataset/main/data"
 index = json.load(urllib.request.urlopen(f"{BASE}/index.json"))
 
 threads = []
@@ -181,11 +181,11 @@ Guidance repository, and more packages currently ingesting.
 ## Citation
 
 ```bibtex
-@misc{openircc2026,
-  title  = {Open IRCC Dataset: Structured Records from the IRCC Immigration Representatives Mailbox},
+@misc{irccatip2026,
+  title  = {IRCC ATIP Dataset: Records Released under the Access to Information Act},
   author = {{VisaFlo}},
   year   = {2026},
-  url    = {https://github.com/VisaFlo/open-ircc-dataset},
+  url    = {https://github.com/VisaFlo/ircc-atip-dataset},
   note   = {Records released under the Access to Information Act (Canada)}
 }
 ```

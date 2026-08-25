@@ -31,7 +31,7 @@ completed ATIP packages. Anyone can obtain the same source PDFs, free:
 ## Raw source PDFs
 
 All received release packages are attached, exactly as IRCC delivered them, under
-[**Releases → source-pdfs-v1**](https://github.com/VisaFlo/immreps-mailbox-dataset/releases/tag/source-pdfs-v1)
+[**Releases → source-pdfs-v1**](https://github.com/VisaFlo/ircc-atip-dataset/releases/tag/source-pdfs-v1)
 (kept out of the git tree so clones stay light). Redactions are IRCC's own (s.19(1)).
 
 ## Licence
