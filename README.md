@@ -2,13 +2,13 @@
 
 <!-- STATS:HERO -->
 > 40,055 pages of IRCC records obtained under the Access to Information Act,
-> parsed into 7,806 searchable answers to licensed immigration representatives
+> parsed into 9,793 searchable answers to licensed immigration representatives
 > plus 34 internal officer manuals. Free, open, and still growing.
 <!-- /STATS:HERO -->
 
 <!-- STATS:BADGES -->
 ![source pages](https://img.shields.io/badge/source%20pages-40,055-blue)
-![threads](https://img.shields.io/badge/threads-7,806-blue)
+![threads](https://img.shields.io/badge/threads-9,793-blue)
 ![manuals](https://img.shields.io/badge/manuals-34-blue)
 ![coverage](https://img.shields.io/badge/coverage-2016--2025-blue)
 ![data](https://img.shields.io/badge/data-OGL--Canada-green)
@@ -27,16 +27,16 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 | File | Contents | Threads |
 |---|---|---|
 | [`data/2016.json`](data/2016.json) | Mailbox threads, 2016 | 301 |
-| [`data/2017.json`](data/2017.json) | Mailbox threads, 2017 | 555 |
-| [`data/2018.json`](data/2018.json) | Mailbox threads, 2018 | 29 |
-| [`data/2019.json`](data/2019.json) | Mailbox threads, 2019 | 1 |
-| [`data/2020.json`](data/2020.json) | Mailbox threads, 2020 | 436 |
+| [`data/2017.json`](data/2017.json) | Mailbox threads, 2017 | 556 |
+| [`data/2018.json`](data/2018.json) | Mailbox threads, 2018 | 817 |
+| [`data/2019.json`](data/2019.json) | Mailbox threads, 2019 | 1,057 |
+| [`data/2020.json`](data/2020.json) | Mailbox threads, 2020 | 489 |
 | [`data/2021.json`](data/2021.json) | Mailbox threads, 2021 | 2,238 |
 | [`data/2022.json`](data/2022.json) | Mailbox threads, 2022 | 581 |
 | [`data/2023.json`](data/2023.json) | Mailbox threads, 2023 | 2 |
 | [`data/2024.json`](data/2024.json) | Mailbox threads, 2024 | 1,629 |
 | [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 1,669 |
-| [`data/undated.json`](data/undated.json) | Threads with no parseable date | 365 |
+| [`data/undated.json`](data/undated.json) | Threads with no parseable date | 454 |
 | [`data/index.json`](data/index.json) | Counts by year, quality, ATIP release | — |
 | [`manuals/`](manuals/) | OCR text of 34 internal IRCC documents | — |
 | [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
@@ -138,8 +138,8 @@ So we built the pipeline once, and opened everything.
 Full types and semantics in [`schema.md`](schema.md).
 
 <!-- STATS:QUALITY -->
-`quality` is the field to read first: `answered` (5,935) substantive reply ·
-`deflected` (152) boilerplate refusal or redirect · `partial` (1,719) OCR-torn or empty.
+`quality` is the field to read first: `answered` (8,514) substantive reply ·
+`deflected` (193) boilerplate refusal or redirect · `partial` (1,086) OCR-torn or empty.
 <!-- /STATS:QUALITY -->
 
 Deflected threads are kept, not hidden. What IRCC declines to answer is signal too.

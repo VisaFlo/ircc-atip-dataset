@@ -320,3 +320,164 @@ def test_unrecoverable_month_degrades_to_none():
     threads = split_threads(text)
     assert len(threads) == 1
     assert threads[0]["date"] is None
+
+
+class TestRedactedSenderArchivedExports:
+    """A-2021-10866 / 2A-2021-90643 (2018-2021 packages): the archived export
+    header has an ATIP-REDACTED sender zone — "From:" runs straight into
+    "Mail received time:"/"Sent:", with the name blanked out. The block still
+    starts at IRCC's own reply (that is what "Archived:" archived), so the
+    first From-segment is the answer even though no IRCC sender name survives
+    for _is_ircc_sender to match."""
+
+    def test_redacted_header_thread_has_an_answer(self):
+        threads = split_threads(load("redacted_sender_chunk.md"))
+        hmnc = [
+            t for t in threads
+            if t["subject"].startswith("Question about a combination of occupations")
+        ]
+        assert hmnc, "HMNC thread not found"
+        t = hmnc[0]
+        assert t["answer"], "redacted-sender reply was misfiled into question"
+        # IRCC's actual guidance, not the rep's question.
+        assert "Applicants cannot combine periods of work experience" in t["answer"]
+
+    def test_redacted_header_question_is_the_reps_text_not_irccs(self):
+        threads = split_threads(load("redacted_sender_chunk.md"))
+        t = [
+            t for t in threads
+            if t["subject"].startswith("Question about a combination of occupations")
+        ][0]
+        assert t["question"], "expected the quoted rep question below the reply"
+        # The rep's mail cites the IRCC guide page; IRCC's ruling must NOT be here.
+        assert "High Medical Needs Class" in t["question"]
+        assert "Applicants cannot combine periods of work experience" not in t["question"]
+
+    def test_every_redacted_chunk_thread_gets_an_answer(self):
+        threads = split_threads(load("redacted_sender_chunk.md"))
+        assert len(threads) == 3
+        assert all(t["answer"] for t in threads), [
+            t["subject"] for t in threads if not t["answer"]
+        ]
+
+    def test_ircc_signoff_never_lands_in_the_question(self):
+        # The sign-off marks the END of IRCC's reply. If it shows up in a
+        # question body, the reply was misfiled — this is the fingerprint of
+        # the bug across the whole release.
+        for name in (
+            "redacted_sender_chunk.md",
+            "holding_reply_chunk.md",
+            "holding_then_answer_chunk.md",
+        ):
+            for t in split_threads(load(name)):
+                if not t["question"]:
+                    continue
+                assert "The Immigration Representatives Mailbox" not in t["question"], (
+                    f"{name}: IRCC reply misfiled into question of {t['subject']!r}"
+                )
+
+
+    def test_export_header_detection_is_specific_not_blanket(self):
+        """The guard must fire on ARCHIVED EXPORT headers only. Treating every
+        first segment as the answer (the blanket version) steals the rep's
+        question into the answer side — it costs 98 questions corpus-wide, and
+        visibly corrupts this mixed_tail thread."""
+        threads = split_threads(load("mixed_tail.md"))
+        fam = [
+            t for t in threads
+            if t["subject"].startswith("Family Class: uploading Schedule A")
+        ]
+        assert fam, "Family Class thread not found"
+        t = fam[0]
+        # The rep's own report stays the question; the unrelated quoted appeal
+        # text (which the blanket version promotes) must not replace it.
+        assert t["question"] and "no available slot to upload Schedule A" in t["question"]
+        assert not t["question"].startswith("Dear Sir or Madam")
+
+    def test_quoted_reply_header_is_not_an_export_header(self):
+        """A quoted reply header deep in a chain carries a real sender name and
+        no export-only fields, so it must never be taken for an export header."""
+        from pipeline.split_threads import _is_archived_export_header
+
+        # Verbatim redacted export header (A-2021-10866 Part 4).
+        export = (
+            "From:\n\nMail received time: Tue, 1 May 2018 12:37:58\n\n"
+            "Sent: Tue, 1 May 2018 12:37:57\n\nTo: Cc:\n\n"
+            "Subject: FW: Question about ... -REP-2018-0583\n\nSensitivity: Normal\n"
+        )
+        assert _is_archived_export_header(export)
+        # Verbatim quoted rep-question header from the same block.
+        quoted = (
+            "From: Sent: April 3, 2018 9:49 PM To: Immigration Representatives / "
+            "Représentants immigration (IRCC) <IRCC.ImmigrationRepresentatives-"
+            "Representantsimmigration.IRCC@cic.gc.ca> Cc: Subject: Question about "
+            "a combination of occupations\n"
+        )
+        assert not _is_archived_export_header(quoted)
+
+
+class TestHoldingReplies:
+    """IRCC often sends a HOLDING reply ("considerable delay in responding")
+    before the substantive one. A holding-only thread is a thin answer and must
+    be classified honestly, not padded with the rep's question text."""
+
+    def test_holding_only_thread_keeps_the_holding_text_as_the_answer(self):
+        threads = split_threads(load("holding_reply_chunk.md"))
+        pardon = [t for t in threads if "Presidential Pardon" in t["subject"]]
+        assert pardon, "Presidential Pardon thread not found"
+        t = pardon[0]
+        assert t["answer"]
+        assert "considerable delay in responding" in t["answer"]
+        # The rep's actual enquiry stays on the question side.
+        assert t["question"] and "Presidential Pardon" in t["question"]
+        assert "considerable delay in responding" not in t["question"]
+
+    def test_a_holding_notice_alone_is_never_substantive(self):
+        """A stall notice must not count as guidance. Verbatim holding reply
+        from A-2021-10866 Part 1 (Recapture time provisions -- REP-2018-2027):
+        251 chars that used to clear MIN_SUBSTANCE_CHARS and label the thread
+        "answered"."""
+        from pipeline.quality import classify, strip_boilerplate
+
+        holding = (
+            "Good day,\n\nPlease be advised there will be a considerable delay "
+            "in responding to your query. We are in the process of consulting "
+            "several partners outside our branch in order to provide the answer "
+            "and this is causing a delay beyond our control.\n\nThank you for "
+            "your patience,\n\nThe Immigration Representatives Mailbox"
+        )
+        assert strip_boilerplate(holding) == "", strip_boilerplate(holding)
+        assert classify({"raw": "", "answer": holding}) == "deflected"
+
+    def test_holding_reply_followed_by_real_answer_stays_answered(self):
+        """The trap: when a thread carries BOTH a holding notice and the real
+        substantive reply, the real one must win. The Presidential Pardon
+        thread also carries IRCC's internal routing email, so the answer side
+        keeps real content beyond the stall."""
+        from pipeline.quality import classify
+
+        threads = split_threads(load("holding_reply_chunk.md"))
+        t = [t for t in threads if "Presidential Pardon" in t["subject"]][0]
+        assert "considerable delay in responding" in t["answer"]
+        assert "For your action, see inquiry below" in t["answer"]
+        assert classify(t) == "answered"
+
+    def test_substantive_reply_wins_over_the_holding_reply(self):
+        # PGWP thread: a holding/"stay tuned" note sits on top, the real
+        # answer about off-campus work follows in the same thread.
+        threads = split_threads(load("holding_then_answer_chunk.md"))
+        pgwp = [t for t in threads if t["subject"].startswith("On-/ Off-campus Work")]
+        assert pgwp, "PGWP thread not found"
+        t = pgwp[0]
+        assert t["answer"]
+        # Both IRCC emails belong to the answer side; the rep's follow-up does not.
+        assert "The Immigration Representatives Mailbox" in t["answer"]
+        assert t["question"] and "I'm wondering if you've had a chance" in t["question"]
+
+    def test_pgp_thread_answer_is_populated(self):
+        threads = split_threads(load("holding_then_answer_chunk.md"))
+        pgp = [t for t in threads if t["subject"].startswith("Parent Grandparent Program")]
+        assert pgp, "PGP thread not found"
+        t = pgp[0]
+        assert t["answer"], "redacted-sender reply misfiled into question"
+        assert "family size is calculated on the day" in t["answer"]

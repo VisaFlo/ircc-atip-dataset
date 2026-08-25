@@ -31,6 +31,48 @@ _IRCC_SENDER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- redacted archived-export headers (A-2021-10866, 2A-2021-90643) --------
+# In the 2018-2021 packages the ATIP redaction blanks the SENDER NAME out of
+# the archived export header, so the header reads "From:" running straight
+# into "Mail received time:"/"Sent:" with nothing in between:
+#
+#     Archived: January 10, 2022 1:49:28 PM
+#     From:
+#     Mail received time: Tue, 1 May 2018 12:37:58
+#     Sent: Tue, 1 May 2018 12:37:57
+#     To: Cc:
+#     Subject: FW: Question about ... -REP-2018-0583
+#     Sensitivity: Normal
+#
+#     Hello, ... Answer: As per the Ministerial Instructions ...
+#
+# _is_ircc_sender therefore cannot recognise the archived email as IRCC's, and
+# the whole reply used to be misfiled into `question` (leaving `answer` empty
+# for 58% of 2019 threads). But an "Archived:" block IS the archived email:
+# whatever sits above the first quoted reply is IRCC's own reply, exactly the
+# `first_is_answer` semantics the old-format path already uses.
+#
+# The tell that a From-header is an EXPORT header rather than a quoted reply
+# header is the Outlook export-only field pair "Mail received time:" /
+# "Sensitivity:". Measured over every Archived: release in the corpus: present
+# in 6,389 of 7,313 first segments but only 111 of 9,993 later (quoted) ones.
+_EXPORT_HEADER_RE = re.compile(
+    r"Mail received time[ \t]*:|Sensitivity[ \t]*:", re.IGNORECASE
+)
+
+# How far into a segment the export-header fields may sit. The header table is
+# a handful of short lines; OCR scatters them but never past ~300 chars in the
+# observed releases (max seen: 271).
+_EXPORT_HEADER_SPAN = 300
+
+
+def _is_archived_export_header(segment: str) -> bool:
+    """True when a From-segment opens an ARCHIVED EXPORT header table (rather
+    than a quoted reply header) — identified by the export-only Outlook fields
+    even after ATIP blanked the sender name."""
+    return bool(_EXPORT_HEADER_RE.search(segment[:_EXPORT_HEADER_SPAN]))
+
+
 # --- old-format fallback (releases without Archived: markers) ---------------
 # Each email export starts with an Outlook header table: a From/Sent/To/Cc/
 # Subject cluster with IRCC as the sender. OCR scrambles it (heading marks,
@@ -253,6 +295,15 @@ def _is_ircc_sender(segment: str) -> bool:
 
 def _extract_qa(block: str, first_is_answer: bool = False) -> tuple[str | None, str | None]:
     segments = _FROM_RE.split(block)
+    # Archived exports whose sender name was blanked out by the ATIP redaction:
+    # the first segment carries an EXPORT header table, so it is the archived
+    # (IRCC) email itself, not a quoted question. Treat it like the old-format
+    # first_is_answer case. Only the FIRST segment gets this treatment — a
+    # quoted reply deeper in the chain never starts the archived export.
+    if not first_is_answer and len(segments) > 1:
+        first = segments[1]
+        if _is_archived_export_header(first) and not _is_ircc_sender(first):
+            first_is_answer = True
     answers: list[str] = []
     question: str | None = None
     for i, seg in enumerate(segments[1:]):  # segments[0] precedes the first From header

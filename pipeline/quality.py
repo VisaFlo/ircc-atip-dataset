@@ -181,6 +181,29 @@ BOILERPLATE_PATTERNS = [
     r"(?:[o0] visitez notre page Web de v[ée]rification de l['’][ée]tat de la demande\.?)?",
     r"Si vous rencontrez des probl[eè]mes techniques avec les applications en ligne ?:",
     r"[o0] pour signaler un probl[eè]me technique ?: ?Techni(?:que|cal)\.?",
+    # HOLDING replies (A-2021-10866 / 2A-2021-90643, 2018-2021): IRCC stalls
+    # rather than answers. "Good day, Please be advised there will be a
+    # considerable delay in responding to your query (e.g. 10 business days
+    # max). We are in the process of consulting several partners outside our
+    # branch in order to provide the answer and this is causing a delay beyond
+    # our control. Thank you for your patience, The Immigration
+    # Representatives Mailbox" — 251 chars of pure stall, which cleared
+    # MIN_SUBSTANCE_CHARS and mislabelled 31 threads "answered". OCR tears the
+    # sentence apart, so each clause is stripped independently.
+    r"Please be advised there will be a considerable delay in responding to "
+    r"your query(?: \(e\.g\.? ?\d+ business days max\.?\))?[,.]?",
+    r"We are in the process of consulting several partners outside our "
+    r"branch in order to provide the answer and this is",
+    r"causing a delay beyond our control[,.]?",
+    r"(?:Thank you )?for your patience[,.]?",
+    # Softer stall variants seen in the same releases.
+    r"Please,? stay tuned and do accept our apologies[,.]?",
+    r"was assessed by one of our team since [^.]{0,30}, but the case was "
+    r"classified as complex[,.]?",
+    r"Imm Rep Mailbox has contacted the team in charge in order to",
+    r"speed up and provide a feedback to you[,.]?",
+    r"Thank you for your follow up and we apologize for the delay[,.]?",
+    r"We will be advising shortly[,.]?",
     # Signoffs: "We hope this information is of assistance." / "We hope you
     # find this information useful." / "Thank you kindly, The Immigration
     # Representatives Mailbox" / "Sincerely, Immigration Re..." / "Cordialement,"
@@ -231,6 +254,11 @@ DEFLECTION_SIGNAL_PATTERNS = [
     r"client support channels",
     r"available on our website to communicate with us",
     r"Client Support Centre",
+    # Holding/stall replies: IRCC acknowledges but defers the answer.
+    r"considerable delay in responding",
+    r"stay tuned and do accept our apologies",
+    r"the case was classified as complex",
+    r"We will be advising shortly",
     # torn fragments of the scope blurb
     r"residence, asylum, citizenship and program integrity",
     r"citoyennet[ée] et l['’]int[ée]grit[ée] des programmes",
