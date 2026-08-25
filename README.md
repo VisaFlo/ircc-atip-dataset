@@ -1,11 +1,13 @@
 # Open IRCC Dataset
 
 <!-- STATS:HERO -->
-> 6,457 IRCC answers to licensed immigration representatives, 18 internal officer
-> manuals, and every ATIP release behind them. Parsed, structured, free.
+> 32,697 pages of IRCC records obtained under the Access to Information Act,
+> parsed into 6,457 searchable answers to licensed immigration representatives
+> plus 18 internal officer manuals. Free, open, and still growing.
 <!-- /STATS:HERO -->
 
 <!-- STATS:BADGES -->
+![source pages](https://img.shields.io/badge/source%20pages-32,697-blue)
 ![threads](https://img.shields.io/badge/threads-6,457-blue)
 ![manuals](https://img.shields.io/badge/manuals-18-blue)
 ![coverage](https://img.shields.io/badge/coverage-2016--2025-blue)

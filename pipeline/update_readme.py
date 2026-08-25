@@ -18,20 +18,42 @@ def _block(name, body):
     return f"<!-- STATS:{name} -->\n{body}\n<!-- /STATS:{name} -->"
 
 
-def render(index, manuals_count):
+def _source_pages(data_dir):
+    """Total pages in the original ATIP PDFs, written by the ingest step.
+
+    Reported alongside the thread count because they answer different questions:
+    pages say how much raw record was obtained, threads say how much is usable."""
+    path = os.path.join(data_dir, "sources_pages.json")
+    if not os.path.exists(path):
+        return None, None
+    blob = json.load(open(path, encoding="utf-8"))
+    return blob.get("total_source_pages"), blob.get("packages")
+
+
+def render(index, manuals_count, source_pages=None, packages=None):
     total = index["total"]
     by_year = index["by_year"]
     q = index["by_quality"]
     years = sorted(y for y in by_year if y != "undated")
 
-    hero = (
-        f"> {total:,} IRCC answers to licensed immigration representatives, "
-        f"{manuals_count} internal officer\n"
-        "> manuals, and every ATIP release behind them. Parsed, structured, free."
-    )
+    if source_pages:
+        hero = (
+            f"> {source_pages:,} pages of IRCC records obtained under the Access to Information Act,\n"
+            f"> parsed into {total:,} searchable answers to licensed immigration representatives\n"
+            f"> plus {manuals_count} internal officer manuals. Free, open, and still growing."
+        )
+    else:
+        hero = (
+            f"> {total:,} IRCC answers to licensed immigration representatives, "
+            f"{manuals_count} internal officer\n"
+            "> manuals, and every ATIP release behind them. Parsed, structured, free."
+        )
 
     coverage = f"{years[0]}--{years[-1]}" if years else "n/a"
-    badges = "\n".join([
+    badge_rows = []
+    if source_pages:
+        badge_rows.append(f"![source pages](https://img.shields.io/badge/source%20pages-{source_pages:,}-blue)")
+    badges = "\n".join(badge_rows + [
         f"![threads](https://img.shields.io/badge/threads-{total:,}-blue)",
         f"![manuals](https://img.shields.io/badge/manuals-{manuals_count}-blue)",
         f"![coverage](https://img.shields.io/badge/coverage-{coverage}-blue)",
@@ -82,8 +104,9 @@ def main(argv):
     index = json.load(open(os.path.join(data_dir, "index.json"), encoding="utf-8"))
     manuals_dir = os.path.join(root, "manuals")
     manuals = len([f for f in os.listdir(manuals_dir) if f.endswith(".md") and f != "README.md"]) if os.path.isdir(manuals_dir) else 0
-    update(readme, render(index, manuals))
-    print(f"README updated: {index['total']:,} threads, {manuals} manuals")
+    pages, packages = _source_pages(data_dir)
+    update(readme, render(index, manuals, pages, packages))
+    print(f"README updated: {index['total']:,} threads, {manuals} manuals, {pages or 0:,} source pages")
 
 
 if __name__ == "__main__":
