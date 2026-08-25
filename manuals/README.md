@@ -24,6 +24,8 @@ Requested free of charge through the informal-request route on open.canada.ca. A
 | [Chinook 1.5 Module 3: TRV Journey Lab User Manual (110p)](chinook-1.5-module-3-user-manual.md) | A-2021-32823 |
 | [Chinook: Algorithmic Impact Assessment, GBA+ and Statistics (68p)](chinook-aia-gba-statistics.md) | 2A-2024-90730 |
 | [GCMS Full Outage: Post-Incident Report (39p)](gcms-full-outage-incident-report.md) | 1A-2025-13519 |
+| [TR Decision Making (CC8000): officer training course (1,524p)](tr-decision-making-course.md) | A-2021-22877 |
+| [Canadian Experience Class: Qualifying Work Experience (669p)](cec-qualifying-work-experience.md) | A-2025-58066 |
 
 The two R10 Review Manual releases are the same manual disclosed twice under different ATIP requests. Their redactions differ, so each contains passages the other withholds — read both.
 

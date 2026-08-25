@@ -1,15 +1,15 @@
 # IRCC ATIP Dataset
 
 <!-- STATS:HERO -->
-> 32,765 pages of IRCC records obtained under the Access to Information Act,
+> 40,055 pages of IRCC records obtained under the Access to Information Act,
 > parsed into 7,806 searchable answers to licensed immigration representatives
-> plus 32 internal officer manuals. Free, open, and still growing.
+> plus 34 internal officer manuals. Free, open, and still growing.
 <!-- /STATS:HERO -->
 
 <!-- STATS:BADGES -->
-![source pages](https://img.shields.io/badge/source%20pages-32,765-blue)
+![source pages](https://img.shields.io/badge/source%20pages-40,055-blue)
 ![threads](https://img.shields.io/badge/threads-7,806-blue)
-![manuals](https://img.shields.io/badge/manuals-32-blue)
+![manuals](https://img.shields.io/badge/manuals-34-blue)
 ![coverage](https://img.shields.io/badge/coverage-2016--2025-blue)
 ![data](https://img.shields.io/badge/data-OGL--Canada-green)
 ![code](https://img.shields.io/badge/code-MIT-green)
@@ -38,7 +38,7 @@ Every thread traces to an ATIP package you can request yourself, free. See [`sou
 | [`data/2025.json`](data/2025.json) | Mailbox threads, 2025 | 1,669 |
 | [`data/undated.json`](data/undated.json) | Threads with no parseable date | 365 |
 | [`data/index.json`](data/index.json) | Counts by year, quality, ATIP release | — |
-| [`manuals/`](manuals/) | OCR text of 32 internal IRCC documents | — |
+| [`manuals/`](manuals/) | OCR text of 34 internal IRCC documents | — |
 | [Releases](../../releases) | Raw ATIP PDFs, as IRCC delivered them | — |
 <!-- /STATS:TABLE -->
 
@@ -159,6 +159,7 @@ Full index with provenance: [`manuals/README.md`](manuals/README.md).
 | [PNP Data Entry & Pre-Assessment Manual](manuals/pnp-data-entry-pre-assessment-2023.md) — incl. R10 completeness | 130 |
 | [ENF 2: Evaluating Inadmissibility](manuals/enf2-evaluating-inadmissibility.md) — the actual grounds and wording | 95 |
 | [Inland SCLPC Processing Reference Guide](manuals/sclpc-inland-processing-guide.md) | 53 |
+| [TR Decision Making (CC8000)](manuals/tr-decision-making-course.md) — IRCC's own training course for temporary-residence officers, with the practice scenarios they score | 1,524 |
 | [Guide to Express Entry Reference Letters](manuals/ee-reference-letter-guide.md) — the #1 refusal driver | 20 |
 | [OP 23: Anti-fraud Manual](manuals/op23-anti-fraud.md) · [ENF 14: Rehabilitation](manuals/enf14-rehabilitation.md) · [Citizenship Manual 6: Prohibitions](manuals/citizenship-manual-6-prohibitions.md) | 22 · 56 · 91 |
 
@@ -192,6 +193,7 @@ Full index with provenance: [`manuals/README.md`](manuals/README.md).
 | [Temporary Residence applications by paid representative, 2015–2021](manuals/tr-applications-by-representative-stats.md) — volumes by line of business | 516 |
 | [Officer manual transition: internal correspondence](manuals/officer-manual-transition-emails.md) | 306 |
 | [GCMS full outage: post-incident report](manuals/gcms-full-outage-incident-report.md) | 39 |
+| [Canadian Experience Class: qualifying work experience](manuals/cec-qualifying-work-experience.md) — a point-in-time snapshot of IRCC's *public* guidance, unlike the rest here | 669 |
 | [IRCC Country Information Library](manuals/country-information-library.md) · [The Book of Basics 2014](manuals/book-of-basics-2014.md) · [Inland Enforcement Training: Removals](manuals/inland-enforcement-removals-2015.md) · [Reconsideration Training Guides](manuals/reconsideration-training-guides.md) · [Labour Market Benefits Plan template](manuals/lmbp-template.md) | 182 · 140 · 114 · 9 · 11 |
 
 Half of these we requested ourselves; the rest were obtained by earlier requesters who

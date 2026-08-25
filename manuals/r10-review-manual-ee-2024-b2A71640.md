@@ -2,6 +2,7 @@
 
 > Source: IRCC record released under the Access to Information Act. 2A-2024-71640 · obtained by informal request (open.canada.ca).
 > Two separate ATIP releases of the same manual. Redactions differ between them, so each contains passages the other withholds. Compare both.
+> A third release (2A-2024-69061) was also obtained and proved byte-identical to this one after normalisation, so it is not duplicated here.
 > Text below is local-OCR output of the scanned release and carries OCR noise; the release PDF is authoritative.
 
 migration, Refugees and Citizenship Canadaet Citoyenneté Canada u de la loi sur l'accès àlinformation
