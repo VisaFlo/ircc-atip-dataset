@@ -144,12 +144,62 @@ Full types and semantics in [`schema.md`](schema.md).
 
 Deflected threads are kept, not hidden. What IRCC declines to answer is signal too.
 
-## What else is inside
+## What's in `manuals/`
 
-- **`manuals/`** — OCR text of 19 internal IRCC documents: the Chinook processing manuals
-  (including the refusal-notes generator), R10 completeness manuals, ENF 2 inadmissibility
-  assessment, the Express Entry officer answer guide, anti-fraud manual, Country Information
-  Library. Each file carries its provenance.
+Alongside the mailbox threads, the repo carries the OCR text of 32 internal IRCC
+documents — the guidance officers work from, which is normally not published.
+Full index with provenance: [`manuals/README.md`](manuals/README.md).
+
+**How applications get assessed**
+
+| Document | Pages |
+|---|---|
+| [Express Entry R10 Review Manual 2024](manuals/r10-review-manual-ee-2024-a2A64537.md) — completeness review, released twice with different redactions ([release B](manuals/r10-review-manual-ee-2024-b2A71640.md)) | 289 + 257 |
+| [Express Entry PR Module: Officer Answer Guide](manuals/ee-pr-module-answer-guide.md) — how officers answer each PR module question | 447 |
+| [PNP Data Entry & Pre-Assessment Manual](manuals/pnp-data-entry-pre-assessment-2023.md) — incl. R10 completeness | 130 |
+| [ENF 2: Evaluating Inadmissibility](manuals/enf2-evaluating-inadmissibility.md) — the actual grounds and wording | 95 |
+| [Inland SCLPC Processing Reference Guide](manuals/sclpc-inland-processing-guide.md) | 53 |
+| [Guide to Express Entry Reference Letters](manuals/ee-reference-letter-guide.md) — the #1 refusal driver | 20 |
+| [OP 23: Anti-fraud Manual](manuals/op23-anti-fraud.md) · [ENF 14: Rehabilitation](manuals/enf14-rehabilitation.md) · [Citizenship Manual 6: Prohibitions](manuals/citizenship-manual-6-prohibitions.md) | 22 · 56 · 91 |
+
+**Automation and triage (Chinook)**
+
+| Document | Pages |
+|---|---|
+| [Chinook 1.5 & GCMS User Manual](manuals/chinook-1.5-gcms-user-manual.md) | 188 |
+| [Chinook Module 4: Refusal Notes Generator](manuals/chinook-module4-refusal-notes.md) — refusal wording is redacted under s.16(1)(c); ENF 2 above is the readable source | 58 |
+| [Chinook 1.5 Module 3: TRV Journey Lab](manuals/chinook-1.5-module-3-user-manual.md) | 110 |
+| [Chinook: Algorithmic Impact Assessment, GBA+ and statistics](manuals/chinook-aia-gba-statistics.md) | 68 |
+| [AIA: Visitor Record Triage](manuals/aia-visitor-record-triage.md) · [IEC Work Permit Eligibility Model GBA+](manuals/iec-wp-eligibility-model-gba.md) | 10 · 8 |
+| [Daponte affidavit on Chinook](manuals/ocran-daponte-affidavit-2021.md) — Federal Court IMM-6571-20 | 25 |
+
+**How IRCC handles representatives and enquiries**
+
+| Document | Pages |
+|---|---|
+| [Client Support Centre: webform response templates & Alpha tool](manuals/webform-response-templates.md) — the canned text behind the replies you receive | 2,212 |
+| [Case-specific enquiry workflows, WF1–WF9](manuals/cse-workflow-procedures.md) — what happens to a webform after you submit it | 1,126 |
+| [Third-party authorization & IMM 5475/5476 handling](manuals/third-party-authorization-procedures.md) | 542 |
+| [Guidance for applications submitted by representatives via the PR Portal](manuals/pr-portal-representative-guidance.md) | 245 |
+| [Bulk Approval SOP](manuals/bulk-approval-sop.md) | 318 |
+
+**Systems, codes and internal records**
+
+| Document | Pages |
+|---|---|
+| [GCMS Coding Manual: Responsibility Centre & office codes](manuals/gcms-responsibility-centre-codes.md) — decodes the office codes in your GCMS notes | 3,570 |
+| [Functional Guidance Repository](manuals/functional-guidance-repository.md) — incl. PRRA/ERAR aide-mémoire | 565 |
+| [Temporary Residence applications by paid representative, 2015–2021](manuals/tr-applications-by-representative-stats.md) — volumes by line of business | 516 |
+| [Officer manual transition: internal correspondence](manuals/officer-manual-transition-emails.md) | 306 |
+| [GCMS full outage: post-incident report](manuals/gcms-full-outage-incident-report.md) | 39 |
+| [IRCC Country Information Library](manuals/country-information-library.md) · [The Book of Basics 2014](manuals/book-of-basics-2014.md) · [Inland Enforcement Training: Removals](manuals/inland-enforcement-removals-2015.md) · [Reconsideration Training Guides](manuals/reconsideration-training-guides.md) · [Labour Market Benefits Plan template](manuals/lmbp-template.md) | 182 · 140 · 114 · 9 · 11 |
+
+Half of these we requested ourselves; the rest were obtained by earlier requesters who
+published them, and are gathered here so everything is searchable in one place.
+[`manuals/README.md`](manuals/README.md) says which is which.
+
+## Also in the repo
+
 - **`pipeline/`** — the parsing pipeline (OCR text → threads → dedup → JSON), stdlib-only
   Python, 90+ tests. Clone and run it on your own ATIP packages.
 - **[`sources.md`](sources.md)** — every ATIP request number, and the steps to obtain the
