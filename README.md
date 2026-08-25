@@ -81,6 +81,26 @@ A caution worth repeating: these are IRCC's procedural answers to other represen
 at the time they were written. Policy moves. Treat a thread as a lead to verify, not as
 current authority, and check the date on every one.
 
+## Ask it in plain language (VisaFlo MCP)
+
+Searching JSON is fine for developers. Most practitioners would rather just ask.
+
+We're wiring this dataset into VisaFlo's MCP server, so an AI assistant can search it for
+you and answer with the actual IRCC reply, quoted and dated:
+
+> *"What has IRCC said about study permits becoming invalid after completing a program?"*
+>
+> *"Has IRCC answered anything about remote-officiant marriages for sponsorship?"*
+
+You get the matching threads, then the full text of the one you care about, with its ATIP
+release number so you can check the original PDF yourself.
+
+**Want access?** Email **info@vflo.app** and we'll set you up. It's rolling out to VisaFlo
+accounts first; tell us what you'd search for and we'll prioritise accordingly.
+
+The dataset stays free and open either way. The MCP is a convenience layer on top of the
+same files in this repo, and it always will be.
+
 ## Why this exists
 
 Immigration runs on information, and too much of it is locked up.
