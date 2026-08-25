@@ -3,5 +3,3 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# launch video lives in VisaFlo/launch-video (private)
-video/
