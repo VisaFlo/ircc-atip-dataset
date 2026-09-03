@@ -2,4 +2,9 @@ __pycache__/
 .venv/
 *.pyc
 .DS_Store
-
+node_modules/
+.next/
+.env*
+!.env.example
+.vercel
+.gstack/

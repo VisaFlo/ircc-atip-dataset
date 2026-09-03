@@ -21,6 +21,24 @@ said about a procedure, and **for developers and researchers** who want it as cl
 
 Every thread traces to an ATIP package you can request yourself, free. See [`sources.md`](sources.md).
 
+## Ask the dataset
+
+**[Try it: ircc-atip-dataset.vercel.app](https://ircc-atip-dataset.vercel.app)**
+
+Ask a question in plain English or Korean and get an answer built only from the records in this
+repository. Every claim is numbered back to the thread it came from, with the ATIP release number,
+so you can open the original and check it yourself. Answers cite the released records, not model
+memory. It is free to use; answering a question needs a Gmail sign-in, which is only there to keep
+automated traffic from running up the API bill.
+
+Two examples, straight from the mailbox:
+
+- [Can a client keep working after applying to switch from worker to visitor?](https://ircc-atip-dataset.vercel.app/?q=If%20I%20apply%20to%20change%20from%20worker%20to%20visitor%20before%20my%20permit%20expires%2C%20can%20I%20keep%20working%20until%20a%20decision%20is%20made%3F)
+- [Does remote work from another province breach an employer-specific permit?](https://ircc-atip-dataset.vercel.app/?q=Does%20remote%20work%20from%20another%20city%20or%20province%20breach%20the%20location%20condition%20on%20an%20employer-specific%20work%20permit%3F)
+
+The same caution applies as everywhere else here: these are IRCC's procedural answers on the date
+they were written. Read the date on every record, and verify against current instructions.
+
 ## Get the data
 
 <!-- STATS:TABLE -->
